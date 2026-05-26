@@ -7,14 +7,15 @@ import DeliveryBox from "../assets/images/deliveryBox.jpg"
 import AddressIcon from "../assets/images/address.png"
 import Support from "../assets/images/support.png"
 import { Link } from "react-router-dom"
-import SearchInPage from "../components/SearchInPage"
-import { fetchUserById, updateUser } from "../components/FetchRequests"
+import { fetchUserById, updateUser } from "../services/FetchRequests"
 import UserProfileShimmer from "../shimmers/UserProfile.shimmer"
 import Footer from "../components/Footer"
+import GetUserId from "../services/GetClothsData"
+import Error from "../components/Error"
 
 export default function UserProfile() {
-  const [search, setSearch] = useState("")
-  console.log(search)
+  const [loading, setLoading] = useState(false)
+  const [isError, setIsError] = useState("")
 
   /* visible useState is used to if user press change profile image btn then 
   the floating form to change profile image will open and if user will press the cross btn 
@@ -29,7 +30,7 @@ export default function UserProfile() {
   // file useState is used to store user's selected image file
   const [file, setFile] = useState({})
 
-  const userId = localStorage.getItem("userId")
+  const userId = GetUserId()
   const [user, setUser] = useState(null)
   const [isUpdated, setUpdated] = useState(false)
 
@@ -44,25 +45,37 @@ export default function UserProfile() {
 
   async function updatePropertiesOfUser(userId, data) {
     try {
-      await updateUser(userId, data)
-      setUpdated(true)
+      await updateUser(userId, data, undefined, setIsError, setUpdated)
     } catch (error) {
-      throw error
+      console.error(error)
+      setIsError(error.message)
     }
   }
 
-  if (profileImage && !edit) {
-    user.profileImage = profileImage
-    updatePropertiesOfUser(userId, { profileImage: user.profileImage })
-  }
+  useEffect(() => {
+    if (profileImage && !edit) {
+      user.profileImage = profileImage
+      updatePropertiesOfUser(userId, { profileImage: user.profileImage })
+    }
+  }, [profileImage])
 
   async function removeProfileImage() {
-    user.profileImage = ""
-    await updateUser(userId, { profileImage: user.profileImage })
-    setEdit(false)
-    setProfileImage("")
-    setImageUrl("")
-    setImagePath("")
+    try {
+      user.profileImage = ""
+      await updateUser(
+        userId,
+        { profileImage: user.profileImage },
+        undefined,
+        setIsError,
+      )
+      setEdit(false)
+      setProfileImage("")
+      setImageUrl("")
+      setImagePath("")
+    } catch (error) {
+      console.error(error)
+      setIsError(error.message)
+    }
   }
 
   function editProfileImage() {
@@ -84,20 +97,33 @@ export default function UserProfile() {
     setEdit(false)
   }
 
-  useEffect(() => {
-    async function fetch() {
-      const user = await fetchUserById(userId)
-      setUser(user)
+  async function fetchData(setLoading, setIsError) {
+    try {
+      setLoading(true)
+
+      await fetchUserById(userId, setUser, setIsError)
       if (isUpdated) {
         setUpdated(false)
       }
+    } catch (error) {
+      console.error(error)
+      setIsError(error.message)
+    } finally {
+      setLoading(false)
     }
-    fetch()
+  }
+
+  useEffect(() => {
+    fetchData(setLoading, setIsError)
   }, [isUpdated])
+
+  if (isError) {
+    return <Error />
+  }
 
   return (
     <>
-      {!user ? (
+      {loading || !user ? (
         <UserProfileShimmer />
       ) : (
         <>
@@ -105,14 +131,8 @@ export default function UserProfile() {
             position="static"
             top="auto"
             zIndex="auto"
-            setSearch={setSearch}
             isSearchBarNeeded={false}
             userDetails={user}
-          />
-          <SearchInPage
-            margin="ms-3"
-            setSearch={setSearch}
-            isSearchBarNeeded={false}
           />
           <main className="container">
             <div className="d-flex flex-column align-items-center mt-5 position-relative">
@@ -302,7 +322,10 @@ export default function UserProfile() {
                   </div>
                 </div>
               </Link>
-              <div className="col-md-6 col-xl-4 mb-4">
+              <Link
+                to="/contactUs"
+                className="col-md-6 col-xl-4 mb-4 text-decoration-none"
+              >
                 <div
                   className={`card align-items-center gap-3 ${styles.cardInUserProfilePage} p-2`}
                 >
@@ -317,7 +340,7 @@ export default function UserProfile() {
                     <p>Contact our customer service via phone or chart</p>
                   </div>
                 </div>
-              </div>
+              </Link>
             </div>
           </main>
           <Footer />

@@ -38,20 +38,24 @@ import goldenRibbon from "./assets/images/goldenRibbon.png"
 import menWearShoe from "./assets/images/menWearShoe.png"
 import SearchInPage from "./components/SearchInPage"
 import { useEffect } from "react"
-import category from "./components/Category"
-import { fetchUserById } from "./components/FetchRequests.js"
+import { fetchAllCategories, fetchUserById } from "./services/FetchRequests.js"
 import AppShimmer from "./shimmers/App.shimmer.jsx"
 import Footer from "./components/Footer.jsx"
+import GetUserId from "./services/GetClothsData.js"
+import Error from "./components/Error.jsx"
 
 export default function App() {
+  const [loading, setLoading] = useState(false)
+  const [isError, setIsError] = useState("")
   const [search, setSearch] = useState("")
   const [show, setShow] = useState(true)
   setTimeout(() => {
     setShow(false)
   }, 1500)
 
-  const userId = localStorage.getItem("userId")
+  const userId = GetUserId()
   const [user, setUser] = useState(null)
+  const [category, setCategory] = useState([])
 
   const filteredCategory = search
     ? category.filter((category) =>
@@ -59,13 +63,27 @@ export default function App() {
       )
     : category
 
-  useEffect(() => {
-    async function fetchData() {
-      const user = await fetchUserById(userId)
-      setUser(user)
+  async function fetchData(setLoading, setIsError) {
+    try {
+      setLoading(true)
+      if (userId) {
+        await fetchUserById(userId, setUser, setIsError)
+      }
+      await fetchAllCategories(setCategory, setIsError)
+    } catch (error) {
+      setIsError(error.message)
+    } finally {
+      setLoading(false)
     }
-    fetchData()
+  }
+
+  useEffect(() => {
+    fetchData(setLoading, setIsError)
   }, [])
+
+  if (isError) {
+    return <Error />
+  }
 
   return (
     <>
@@ -78,7 +96,7 @@ export default function App() {
         </div>
       ) : (
         <>
-          {userId && !user ? (
+          {loading || !user ? (
             <AppShimmer />
           ) : (
             <>

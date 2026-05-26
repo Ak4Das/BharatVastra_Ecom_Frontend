@@ -3,8 +3,8 @@ import { Link, NavLink } from "react-router-dom"
 import BharatVastra from "../assets/images/BharatVastra.png"
 import { useState } from "react"
 import { useEffect } from "react"
-import GetClothsData from "./GetClothsData"
-import { Search } from "./Search"
+import { Search } from "../services/Search"
+import { fetchDistinctCommonCategories } from "../services/FetchRequests"
 
 export default function Header({
   position,
@@ -16,15 +16,23 @@ export default function Header({
   page = "",
   userDetails: user,
 }) {
-  const { clothsData, setClothsData } = GetClothsData()
   const [input, setInput] = useState("")
   const [clickedHamburger, setClickedHamburger] = useState(false)
+  const [categories, setCategories] = useState([])
 
-  const searchProducts = input ? Search(clothsData, input) : []
+  useEffect(() => {
+    async function fetchData() {
+      const result = await fetchDistinctCommonCategories()
+      setCategories(result)
+    }
+    fetchData()
+  }, [])
+
+  const searchProducts = input ? Search(categories, input) : []
 
   useEffect(() => {
     if (!input) {
-      setSearch(input)
+      setSearch && setSearch(input)
     }
   }, [input])
 
@@ -45,7 +53,7 @@ export default function Header({
   }
 
   function handleClick() {
-    setSearch(input)
+    setSearch && setSearch(input)
   }
 
   return (
@@ -83,7 +91,7 @@ export default function Header({
               ></input>
               {page && isCloth ? (
                 <Link
-                  to={`/products/${searchProducts[0].commonCategory}`}
+                  to={`/products/${searchProducts[0].product}`}
                   className="btn btn-warning w-25"
                 >
                   Search

@@ -4,36 +4,35 @@ import { useParams } from "react-router-dom"
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import RatingBar from "../components/RatingBar"
-import SearchInPage from "../components/SearchInPage"
 import { toast } from "react-toastify"
 import {
   fetchUserById,
-  fetchAllOrders,
+  fetchOrderByOrderId,
   deleteOrderById,
-} from "../components/FetchRequests"
+} from "../services/FetchRequests"
 import OrderDetailsShimmer from "../shimmers/OrderDetails.shimmer"
 import Footer from "../components/Footer"
+import GetUserId from "../services/GetClothsData"
+import Error from "../components/Error"
 
 export default function OrderDetails() {
-  const [search, setSearch] = useState("")
-  console.log(search)
+  const [loading, setLoading] = useState(false)
+  const [isError, setIsError] = useState("")
   const id = Number(useParams().id)
 
-  const [allOrders, setAllOrders] = useState([])
-  const orders = allOrders || []
+  const [order, setOrder] = useState([])
 
-  const userId = localStorage.getItem("userId")
+  const userId = GetUserId()
   const [user, setUser] = useState(null)
 
   /* isUpdated useState is used only to update the variables on this page 
   while user will cancel any order */
   const [isUpdated, setUpdated] = useState(false)
 
-  const order = orders.find((order) => order.id === id)
-
   const totalOrder =
     order &&
-    order.item.reduce(
+    order.length &&
+    order[0].item.reduce(
       (acc, curr) =>
         acc +
         (curr.price -
@@ -47,32 +46,48 @@ export default function OrderDetails() {
 
   const deliveryCharge =
     order &&
+    order.length &&
     Math.round(
-      order.item.reduce(
+      order[0].item.reduce(
         (acc, curr) => acc + (curr.freeDelivery ? 0 : curr.deliveryCharge),
         0,
-      ) / order.item.length,
+      ) / order[0].item.length,
     )
 
   const cashOnDeliveryCharge =
-    order && order.paymentMethod === "Cash on Delivery/Pay on Delivery" ? 10 : 0
+    order &&
+    order.length &&
+    order[0].paymentMethod === "Cash on Delivery/Pay on Delivery"
+      ? 10
+      : 0
 
   useEffect(() => {
     async function fetchData() {
-      const user = await fetchUserById(userId)
-      setUser(user)
-      const orders = await fetchAllOrders()
-      setAllOrders(orders)
-      if (isUpdated) {
-        setUpdated(false)
+      try {
+        setLoading(true)
+
+        const user = await fetchUserById(userId, setUser, setIsError)
+        await fetchOrderByOrderId(id, setOrder, setIsError)
+        if (isUpdated) {
+          setUpdated(false)
+        }
+      } catch (error) {
+        console.error(error)
+        setIsError(error.message)
+      } finally {
+        setLoading(false)
       }
     }
     fetchData()
   }, [isUpdated])
 
+  if (isError) {
+    return <Error />
+  }
+
   return (
     <>
-      {!orders ? (
+      {loading || !order ? (
         <OrderDetailsShimmer />
       ) : (
         <>
@@ -80,16 +95,10 @@ export default function OrderDetails() {
             position="static"
             top="auto"
             zIndex="auto"
-            setSearch={setSearch}
             isSearchBarNeeded={false}
             userDetails={user}
           />
-          <SearchInPage
-            margin="ms-3"
-            setSearch={setSearch}
-            isSearchBarNeeded={false}
-          />
-          {order && (
+          {order && order.length !== 0 && (
             <>
               <main className="py-3" style={{ fontSize: "15px" }}>
                 <div
@@ -99,11 +108,11 @@ export default function OrderDetails() {
                   <h1>Order Details</h1>
                   <div className="d-md-flex align-items-center gap-3">
                     <p className="my-0 fw-medium" style={{ fontSize: "13px" }}>
-                      Order placed {order.orderDate}
+                      Order placed {order[0].orderDate}
                     </p>
                     <span className="d-none d-md-inline"> | </span>
                     <p className="my-0 fw-medium" style={{ fontSize: "14px" }}>
-                      Order ID # {order.id}
+                      Order ID # {order[0].id}
                     </p>
                   </div>
                   <div className="card p-3 mt-3 flex-lg-row gap-3 bg-light">
@@ -113,18 +122,18 @@ export default function OrderDetails() {
                         className="my-0 fw-medium"
                         style={{ fontSize: "14px" }}
                       >
-                        <p className="my-0">{order.address.localInfo}</p>
-                        <p className="my-0">{order.address.area}</p>
+                        <p className="my-0">{order[0].address.localInfo}</p>
+                        <p className="my-0">{order[0].address.area}</p>
                         <p className="my-0">
-                          {order.address.city}, {order.address.state},{" "}
-                          {order.address.pinCode}
+                          {order[0].address.city}, {order[0].address.state},{" "}
+                          {order[0].address.pinCode}
                         </p>
-                        <p className="my-0">{order.address.country}</p>
+                        <p className="my-0">{order[0].address.country}</p>
                       </div>
                     </div>
                     <div>
                       <p className="my-0 fw-bold">Payment method</p>
-                      <p className="my-0 fw-medium">{order.paymentMethod}</p>
+                      <p className="my-0 fw-medium">{order[0].paymentMethod}</p>
                     </div>
                     <div className="ms-lg-auto">
                       <p className="my-0 fw-bold">Order Summary</p>
@@ -186,7 +195,7 @@ export default function OrderDetails() {
                             Sale:
                           </p>
                           <p className="my-0 w-50 fw-medium d-inline-block text-end text-success">
-                            -{order.sale ? order.sale : "0%"}
+                            -{order[0].sale ? order[0].sale : "0%"}
                           </p>
                         </div>
                         <div>
@@ -194,7 +203,7 @@ export default function OrderDetails() {
                             Order Total:
                           </p>
                           <p className="my-0 w-25 fw-medium d-inline-block text-end">
-                            ₹{Math.round(order.totalPrice)}
+                            ₹{Math.round(order[0].totalPrice)}
                           </p>
                         </div>
                       </div>
@@ -202,11 +211,11 @@ export default function OrderDetails() {
                   </div>
                   <div className="border border-secondary-subtle rounded bg-white p-3 mt-3">
                     <p className="my-0 fs-5 fw-bold text-success">
-                      Arriving {order.deliveryDay}
+                      Arriving {order[0].deliveryDay}
                     </p>
                     <div className="d-flex flex-column flex-md-row justify-content-between gap-3 mt-3">
                       <div className="d-flex flex-column gap-4">
-                        {order.item.map((product) => (
+                        {order[0].item.map((product) => (
                           <div
                             key={product.id}
                             className={`d-flex gap-3 align-items-start ${styles.productYourOrder}`}
@@ -290,7 +299,7 @@ export default function OrderDetails() {
                         style={{ minWidth: "170px" }}
                       >
                         <Link
-                          to={`/editOrder/${order.id}`}
+                          to={`/editOrder/${order[0].id}`}
                           className="btn btn-warning rounded-pill"
                         >
                           View or edit order
@@ -298,7 +307,10 @@ export default function OrderDetails() {
                         <button
                           className="btn btn-outline-danger rounded-pill"
                           onClick={async () => {
-                            const result = await deleteOrderById(order.id)
+                            const result = await deleteOrderById(
+                              order[0].id,
+                              setIsError,
+                            )
                             if (result) {
                               setUpdated(true)
                               toast("Order deleted successfully")

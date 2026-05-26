@@ -2,8 +2,8 @@ import styles from "../style_modules/components_modules/SearchPage.module.css"
 import { useState } from "react"
 import { useEffect } from "react"
 import { Link } from "react-router-dom"
-import GetClothsData from "./GetClothsData"
-import { Search } from "./Search"
+import { Search } from "../services/Search.js"
+import { fetchDistinctCommonCategories } from "../services/FetchRequests.js"
 
 export default function searchInPage({
   margin,
@@ -15,14 +15,22 @@ export default function searchInPage({
   top = "",
   zIndex = 0,
 }) {
-  const { clothsData, setClothsData } = GetClothsData()
   const [input, setInput] = useState("")
+  const [categories, setCategories] = useState([])
 
-  const searchProducts = input ? Search(clothsData, input) : []
+  useEffect(() => {
+    async function fetchData() {
+      const result = await fetchDistinctCommonCategories()
+      setCategories(result)
+    }
+    fetchData()
+  }, [])
+
+  const searchProducts = input ? Search(categories, input) : []
 
   useEffect(() => {
     if (!input) {
-      setSearch(input)
+      setSearch && setSearch(input)
     }
   }, [input])
 
@@ -33,7 +41,7 @@ export default function searchInPage({
   }
 
   function handleClick() {
-    setSearch(input)
+    setSearch && setSearch(input)
   }
   return (
     <>
@@ -53,7 +61,7 @@ export default function searchInPage({
           ></input>
           {page && isCloth ? (
             <Link
-              to={`/products/${searchProducts[0].commonCategory}`}
+              to={`/products/${searchProducts[0].product}`}
               className={`btn btn-warning ${styles.searchBtnInPage1}`}
               style={{ zIndex: 0 }}
               id="button-addon2"
@@ -73,7 +81,7 @@ export default function searchInPage({
           )}
           {page && isCloth ? (
             <Link
-              to={`/products/${searchProducts[0].commonCategory}`}
+              to={`/products/${searchProducts[0].product}`}
               className={`btn btn-warning ${styles.searchBtnInPage2}`}
               style={{ zIndex: 0 }}
               id="button-addon2"

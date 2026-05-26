@@ -21,6 +21,8 @@ import DiwaliSale from "./pages/DiwaliSale.jsx"
 import SaleProducts from "./pages/SaleProducts.jsx"
 import EditYourOrder from "./pages/EditYourOrder.jsx"
 import { ToastContainer } from 'react-toastify';
+import ContactUs from "./pages/ContactUs.jsx"
+import Error from "./components/Error.jsx"
 
 const router = createBrowserRouter([
   { path: "/", element: <App /> },
@@ -42,13 +44,15 @@ const router = createBrowserRouter([
   { path: "/diwaliSale", element: <DiwaliSale /> },
   { path: "/saleProducts/:commonCategory", element: <SaleProducts /> },
   { path: "/editOrder/:orderId", element: <EditYourOrder /> },
+  { path: "/contactUs", element: <ContactUs /> },
+  { path: "/error", element: <Error /> },
 ])
 
 createRoot(document.getElementById("root")).render(
   <ClothsContextProvider>
-    <StrictMode>
+    {/* <StrictMode> */}
       <RouterProvider router={router} />
       <ToastContainer />
-    </StrictMode>
+    {/* </StrictMode> */}
   </ClothsContextProvider>
 )

@@ -1,25 +1,38 @@
 import styles from "../style_modules/pages_modules/LoginForm.module.css"
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import { saveNewUser } from "../components/FetchRequests"
+import { saveNewUser } from "../services/FetchRequests"
+import Error from "../components/Error"
 
 export default function LoginForm() {
+  const [isError, setIsError] = useState("")
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   async function handleSubmit() {
-    const user = {
-      name,
-      email,
-      password,
-      profileImage: "",
-      address: [],
-      addToCartItems: [],
-      addToWishlistItems: [],
+    try {
+      const user = {
+        name,
+        email,
+        password,
+        profileImage: "",
+        address: [],
+        addToCartItems: [],
+        addToWishlistItems: [],
+      }
+      const newUser = await saveNewUser(user, undefined, setIsError)
+      localStorage.setItem("userId", newUser._id)
+      window.location.reload()
+    } catch (error) {
+      console.error(error)
+      setIsError(error.message)
     }
-    const newUser = await saveNewUser(user)
-    localStorage.setItem("userId", newUser._id)
   }
+
+  if (isError) {
+    return <Error />
+  }
+
   return (
     <main
       className={`card mx-auto my-5 ${styles.loginForm}`}

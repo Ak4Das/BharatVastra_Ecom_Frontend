@@ -2,7 +2,6 @@ import styles from "../style_modules/pages_modules/ProductDetails.module.css"
 import Header from "../components/Header"
 import cashOnDelivery from "../assets/images/cash-on-delivery.png"
 import { useParams } from "react-router-dom"
-import GetClothsData from "../components/GetClothsData"
 import { Link } from "react-router-dom"
 import RatingBar from "../components/RatingBar"
 import { useState } from "react"
@@ -14,16 +13,23 @@ import rightArrow from "../assets/images/right-arrow.png"
 import {
   fetchAllCloths,
   updateClothById,
-  fetchCreateOrder,
-  updateAllItemsInCreateOrder,
+  fetchCreateOrderByUserId,
+  fetchCreateOrderByUserIdAndUpdate,
   fetchUserById,
   updateCartItemsInUser,
   updateWishlistItemsInUser,
-} from "../components/FetchRequests.js"
+  saveCreateOrder,
+  fetchClothById,
+} from "../services/FetchRequests.js"
 import ProductDetailsShimmer from "../shimmers/ProductDetails.shimmer.jsx"
 import Footer from "../components/Footer.jsx"
+import GetUserId from "../services/GetClothsData.js"
+import { syncUserAndCreateOrder } from "../services/Function.js"
+import Error from "../components/Error.jsx"
 
 export default function ProductDetailsPage() {
+  const [loading, setLoading] = useState(false)
+  const [isError, setIsError] = useState("")
   const [search, setSearch] = useState("")
   const [quantity, setQuantity] = useState(1)
   const [size, setSize] = useState("")
@@ -47,13 +53,81 @@ export default function ProductDetailsPage() {
 
   const id = Number(useParams().id)
 
-  const { clothsData, setClothsData } = GetClothsData()
-
-  const userId = localStorage.getItem("userId")
+  const userId = GetUserId()
   const [user, setUser] = useState(null)
 
   const [CreateOrderInDatabase, setCreateOrderInDatabase] = useState(null)
-  console.log(CreateOrderInDatabase)
+
+  const [product, setProduct] = useState(null)
+  const [similarProducts, setSimilarProducts] = useState([])
+
+  useEffect(() => {
+    async function syncFunction() {
+      try {
+        setLoading(true)
+
+        if (userId) {
+          await syncUserAndCreateOrder(userId, setIsError)
+        }
+      } catch (error) {
+        console.error(error)
+        setIsError(error.message)
+      }
+    }
+    syncFunction()
+  }, [])
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        if (userId) {
+          await fetchCreateOrderByUserId(
+            userId,
+            setCreateOrderInDatabase,
+            setIsError,
+          )
+          const user = await fetchUserById(userId, setUser, setIsError)
+        }
+      } catch (error) {
+        console.error(error)
+        setIsError(error.message)
+      }
+    }
+    fetchData()
+  }, [isUpdated])
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const result = await fetchClothById(id, setProduct, setIsError)
+        if (result) {
+          const similarProductIds = result.similarProducts.map(
+            (product) => product.id,
+          )
+          const allSimilarProducts = await Promise.all(
+            similarProductIds.map((id) =>
+              fetchClothById(id, undefined, setIsError),
+            ),
+          )
+          setSimilarProducts(allSimilarProducts)
+        }
+      } catch (error) {
+        console.error(error)
+        setIsError(error.message)
+      }
+    }
+    fetchData()
+  }, [id])
+
+  useEffect(() => {
+    if (user) {
+      const finalProduct = getFinalClothsData([product])
+      setProduct(finalProduct[0])
+      const finalSimilarProducts = getFinalClothsData(similarProducts)
+      setSimilarProducts(finalSimilarProducts)
+    }
+  }, [user])
+
   const uniqueCreateOrderInDatabase =
     CreateOrderInDatabase &&
     CreateOrderInDatabase.reduce((acc, item) => {
@@ -69,54 +143,50 @@ export default function ProductDetailsPage() {
     }, [])
   const createOrderInDatabase = { item: uniqueCreateOrderInDatabase }
 
-  async function updateAllItems(url, data, signal) {
+  async function updateCreateOrder(id, data) {
     try {
-      await updateAllItemsInCreateOrder(url, data, signal)
+      const response = await fetchCreateOrderByUserId(
+        userId,
+        undefined,
+        setIsError,
+      )
+      if (response.length) {
+        await fetchCreateOrderByUserIdAndUpdate(id, data, undefined, setIsError)
+      } else {
+        const response = await saveCreateOrder(data, undefined, setIsError)
+      }
       setUpdated(true)
     } catch (error) {
       throw error
     }
   }
 
-  const finalClothsData = clothsData.map((cloth) => {
-    const isClothPresentInCart =
-      user && user.addToCartItems.filter((item) => item.id === cloth.id)
-    if (isClothPresentInCart && isClothPresentInCart.length) {
-      cloth.addToCart = true
-      cloth.quantity = isClothPresentInCart[0].quantity
-        ? isClothPresentInCart[0].quantity
-        : 1
-      cloth.size = isClothPresentInCart[0].size
-        ? isClothPresentInCart[0].size
-        : ""
-    } else {
-      delete cloth.addToCart
-    }
-    const isClothPresentInWishlist =
-      user && user.addToWishlistItems.filter((item) => item.id === cloth.id)
-    if (isClothPresentInWishlist && isClothPresentInWishlist.length) {
-      cloth.addToWishList = true
-    } else {
-      delete cloth.addToWishList
-    }
-    return cloth
-  })
-
-  const isCloth =
-    search !== ""
-      ? finalClothsData.filter((cloth) => cloth.commonCategory.includes(search))
-          .length
-        ? true
-        : false
-      : false
-
-  useEffect(() => {
-    if (search !== "" && !isCloth) {
-      toast("No such product available")
-    }
-  }, [search])
-
-  const product = finalClothsData.find((product) => product.id === id)
+  function getFinalClothsData(clothsData) {
+    const finalClothsData = clothsData.map((cloth) => {
+      const isClothPresentInCart =
+        user && user.addToCartItems.filter((item) => item.id === cloth.id)
+      if (isClothPresentInCart && isClothPresentInCart.length) {
+        cloth.addToCart = true
+        cloth.quantity = isClothPresentInCart[0].quantity
+          ? isClothPresentInCart[0].quantity
+          : 1
+        cloth.size = isClothPresentInCart[0].size
+          ? isClothPresentInCart[0].size
+          : ""
+      } else {
+        delete cloth.addToCart
+      }
+      const isClothPresentInWishlist =
+        user && user.addToWishlistItems.filter((item) => item.id === cloth.id)
+      if (isClothPresentInWishlist && isClothPresentInWishlist.length) {
+        cloth.addToWishList = true
+      } else {
+        delete cloth.addToWishList
+      }
+      return cloth
+    })
+    return finalClothsData
+  }
 
   const isClothPresentInCart =
     user && user.addToCartItems.filter((item) => item.id === product.id)
@@ -146,131 +216,168 @@ export default function ProductDetailsPage() {
   }
 
   async function increaseCount(e) {
-    // Update the input element value
-    let inputElementValue = Number(e.target.previousElementSibling.value)
-    e.target.previousElementSibling.value = ++inputElementValue
-
-    // Update user in Database
-    const clothItem = user && user.addToCartItems.find((item) => item.id === id)
-    if (clothItem) {
-      clothItem.quantity = Number(e.target.previousElementSibling.value)
-      await updateCartItemsInUser(user._id, user.addToCartItems)
-    }
-
-    // Update clothsData in memory
-    if (product) {
-      product.quantity = Number(e.target.previousElementSibling.value)
-    }
-
-    setQuantity(Number(e.target.previousElementSibling.value))
-    setUpdated(true)
-  }
-
-  async function decreaseCount(e) {
-    let inputElementValue = Number(e.target.nextElementSibling.value)
-    if (inputElementValue > 1) {
+    try {
       // Update the input element value
-      e.target.nextElementSibling.value = --inputElementValue
+      let inputElementValue = Number(e.target.previousElementSibling.value)
+      e.target.previousElementSibling.value = ++inputElementValue
 
       // Update user in Database
-      const clothItem = user.addToCartItems.find((item) => item.id === id)
+      const clothItem =
+        user && user.addToCartItems.find((item) => item.id === id)
       if (clothItem) {
-        clothItem.quantity = Number(e.target.nextElementSibling.value)
-        await updateCartItemsInUser(user._id, user.addToCartItems)
+        clothItem.quantity = Number(e.target.previousElementSibling.value)
+        await updateCartItemsInUser(
+          user._id,
+          user.addToCartItems,
+          undefined,
+          setIsError,
+        )
       }
 
       // Update clothsData in memory
       if (product) {
-        product.quantity = Number(e.target.nextElementSibling.value)
+        product.quantity = Number(e.target.previousElementSibling.value)
       }
 
-      setQuantity(Number(e.target.nextElementSibling.value))
+      setQuantity(Number(e.target.previousElementSibling.value))
       setUpdated(true)
+    } catch (error) {
+      console.error(error)
+      setIsError(error.message)
+    }
+  }
+
+  async function decreaseCount(e) {
+    try {
+      let inputElementValue = Number(e.target.nextElementSibling.value)
+      if (inputElementValue > 1) {
+        // Update the input element value
+        e.target.nextElementSibling.value = --inputElementValue
+
+        // Update user in Database
+        const clothItem = user.addToCartItems.find((item) => item.id === id)
+        if (clothItem) {
+          clothItem.quantity = Number(e.target.nextElementSibling.value)
+          await updateCartItemsInUser(
+            user._id,
+            user.addToCartItems,
+            undefined,
+            setIsError,
+          )
+        }
+
+        // Update clothsData in memory
+        if (product) {
+          product.quantity = Number(e.target.nextElementSibling.value)
+        }
+
+        setQuantity(Number(e.target.nextElementSibling.value))
+        setUpdated(true)
+      }
+    } catch (error) {
+      console.error(error)
+      setIsError(error.message)
     }
   }
 
   async function addToCart(e) {
-    // To stop Event Bubbling
-    e.preventDefault()
-    e.stopPropagation()
-
-    // Update clothsData in memory
-    const cloth = finalClothsData.find(
-      (Product) => Product.id === Number(e.target.value),
-    )
-    if (cloth) {
-      cloth.addToCart = true
-      cloth.quantity = quantity
-      cloth.size = size
-    }
-
-    // Update user in Database
-    const isAddedToCart = user.addToCartItems.filter(
-      (item) => item.id === Number(e.target.value),
-    )
-    if (!isAddedToCart.length) {
-      user.addToCartItems.push({
-        id: cloth.id,
-        quantity: quantity,
-        size: size,
-      })
-      await updateCartItemsInUser(user._id, user.addToCartItems)
-
-      // For interactivity
-      const btn = e.target
-      btn.innerHTML = "Added To Cart"
-      btn.style.backgroundColor = "#05a058"
-      btn.style.color = "white"
-
-      setTimeout(() => {
-        btn.innerHTML = "Added To Cart"
-        btn.style.backgroundColor = ""
-        btn.style.color = ""
-      }, 1000)
-    }
-
-    // To update the variables present in this page
-    setUpdated(true)
-
-    toast("Product added to cart😊")
-  }
-
-  async function addToWishlist(e) {
-    // To stop Event Bubbling
-    e.preventDefault()
-    e.stopPropagation()
-
-    const isAddedToWishlist = user.addToWishlistItems.filter(
-      (item) => item.id === Number(e.target.value),
-    )
-    if (!isAddedToWishlist.length) {
-      // Update user in Database
-      user.addToWishlistItems.push({ id: Number(e.target.value) })
-      await updateWishlistItemsInUser(user._id, user.addToWishlistItems)
+    try {
+      // To stop Event Bubbling
+      e.preventDefault()
+      e.stopPropagation()
 
       // Update clothsData in memory
-      const item = finalClothsData.find(
-        (Product) => Product.id === Number(e.target.value),
-      )
-      if (item) {
-        item.addToWishList = true
+      const cloth = await fetchClothById(e.target.value, undefined, setIsError)
+      if (cloth) {
+        cloth.addToCart = true
+        cloth.quantity = quantity
+        cloth.size = size
       }
 
-      // For interactivity
-      const btn = e.target
-      btn.innerHTML = "Added To Wishlist"
-      btn.style.backgroundColor = "#05a058"
-      btn.style.color = "white"
-      setTimeout(() => {
-        btn.innerHTML = "Added To Wishlist"
-        btn.style.backgroundColor = ""
-        btn.style.color = ""
-      }, 1000)
+      // Update user in Database
+      const isAddedToCart = user.addToCartItems.filter(
+        (item) => item.id === Number(e.target.value),
+      )
+      if (!isAddedToCart.length) {
+        user.addToCartItems.push({
+          id: cloth.id,
+          quantity: quantity,
+          size: size,
+        })
+        await updateCartItemsInUser(
+          user._id,
+          user.addToCartItems,
+          undefined,
+          setIsError,
+        )
+
+        // For interactivity
+        const btn = e.target
+        btn.innerHTML = "Added To Cart"
+        btn.style.backgroundColor = "#05a058"
+        btn.style.color = "white"
+
+        setTimeout(() => {
+          btn.innerHTML = "Added To Cart"
+          btn.style.backgroundColor = ""
+          btn.style.color = ""
+        }, 1000)
+      }
 
       // To update the variables present in this page
       setUpdated(true)
 
-      toast("Product added to wishlist😊")
+      toast("Product added to cart😊")
+    } catch (error) {
+      console.error(error)
+      setIsError(error.message)
+    }
+  }
+
+  async function addToWishlist(e) {
+    try {
+      // To stop Event Bubbling
+      e.preventDefault()
+      e.stopPropagation()
+
+      const isAddedToWishlist = user.addToWishlistItems.filter(
+        (item) => item.id === Number(e.target.value),
+      )
+      if (!isAddedToWishlist.length) {
+        // Update user in Database
+        user.addToWishlistItems.push({ id: Number(e.target.value) })
+        await updateWishlistItemsInUser(
+          user._id,
+          user.addToWishlistItems,
+          undefined,
+          setIsError,
+        )
+
+        // Update clothsData in memory
+        const item = await fetchClothById(e.target.value, undefined, setIsError)
+        if (item) {
+          item.addToWishList = true
+        }
+
+        // For interactivity
+        const btn = e.target
+        btn.innerHTML = "Added To Wishlist"
+        btn.style.backgroundColor = "#05a058"
+        btn.style.color = "white"
+        setTimeout(() => {
+          btn.innerHTML = "Added To Wishlist"
+          btn.style.backgroundColor = ""
+          btn.style.color = ""
+        }, 1000)
+
+        // To update the variables present in this page
+        setUpdated(true)
+
+        toast("Product added to wishlist😊")
+      }
+    } catch (error) {
+      console.error(error)
+      setIsError(error.message)
     }
   }
 
@@ -283,46 +390,83 @@ export default function ProductDetailsPage() {
   update user in database while quantity change and if product is already added to cart */
   useEffect(() => {
     async function fetchData() {
-      const createOrder = await fetchCreateOrder()
-      setCreateOrderInDatabase(createOrder)
-      const user = await fetchUserById(userId)
-      setUser(user)
-      if (isUpdated) {
-        if (isClothPresentInCart && isClothPresentInCart.length) {
-          if (quantity > 1) {
-            isClothPresentInCart[0].quantity = quantity
-            await updateCartItemsInUser(user._id, user.addToCartItems)
-            product.quantity = quantity
+      try {
+        if (isUpdated) {
+          if (isClothPresentInCart && isClothPresentInCart.length) {
+            if (quantity > 1) {
+              isClothPresentInCart[0].quantity = quantity
+              await updateCartItemsInUser(
+                user._id,
+                user.addToCartItems,
+                undefined,
+                setIsError,
+              )
+              product.quantity = quantity
+            }
+          } else {
+            if (quantity > 1) {
+              product.quantity = quantity
+            }
           }
-        } else {
-          if (quantity > 1) {
-            product.quantity = quantity
+          if (size) {
+            const createOrderArr = await fetchCreateOrderByUserId(
+              userId,
+              undefined,
+              setIsError,
+            )
+            createOrderArr[0].products.forEach((item) => (item.size = size))
+            product.size = size
+            const createOrderObj = {
+              products: createOrderArr[0].products,
+              userId,
+            }
+            await fetchCreateOrderByUserIdAndUpdate(
+              userId,
+              createOrderObj,
+              undefined,
+              setIsError,
+            )
           }
-        }
-        if (size) {
-          const createOrderItems = await fetchCreateOrder()
-          createOrderItems.forEach((item) => (item.size = size))
-          product.size = size
-          await updateAllItemsInCreateOrder(
-            "https://e-commerce-website-backend-pi.vercel.app/createOrder/updateItems",
-            createOrderItems,
+          if (isFreeDeliveryAvailable) {
+            product.freeDelivery = true
+          } else {
+            product.freeDelivery = false
+          }
+          const createOrderArr = await fetchCreateOrderByUserId(
+            userId,
+            undefined,
+            setIsError,
           )
+          const filteredItem = createOrderArr[0].products.filter(
+            (item) => item.id !== product.id,
+          )
+          filteredItem.forEach((product) => {
+            const isAddedToCart =
+              user &&
+              user.addToCartItems.filter((item) => item.id === product.id)
+            if (isAddedToCart.length) {
+              product.addToCart = true
+            }
+            const isAddedToWishlist =
+              user &&
+              user.addToWishlistItems.filter((item) => item.id === product.id)
+            if (isAddedToWishlist.length) {
+              product.addToWishList = true
+            }
+          })
+          filteredItem.push(product)
+          const createOrderObj = { products: filteredItem, userId }
+          await fetchCreateOrderByUserIdAndUpdate(
+            userId,
+            createOrderObj,
+            undefined,
+            setIsError,
+          )
+          setUpdated(false)
         }
-        if (isFreeDeliveryAvailable) {
-          product.freeDelivery = true
-        } else {
-          product.freeDelivery = false
-        }
-        const createOrderItems = await fetchCreateOrder()
-        const filteredItem = createOrderItems.filter(
-          (item) => item.id !== product.id,
-        )
-        filteredItem.push(product)
-        await updateAllItemsInCreateOrder(
-          "https://e-commerce-website-backend-pi.vercel.app/createOrder/updateItems",
-          filteredItem,
-        )
-        setUpdated(false)
+      } catch (error) {
+        console.error(error)
+        setIsError(error.message)
       }
     }
     fetchData()
@@ -388,23 +532,31 @@ export default function ProductDetailsPage() {
   }
 
   useEffect(() => {
-    if (product.freeDelivery) {
+    if (product?.freeDelivery) {
       setFreeDelivery(true)
       const timerId = setInterval(async () => {
-        const currentTime = new Date()
-        const hours = currentTime.getHours()
-        const minutes = currentTime.getMinutes()
-        const seconds = currentTime.getSeconds()
-        setTime(`${23 - hours}:${59 - minutes}:${59 - seconds}`)
-        // console.log(hours, minutes, seconds)
-        if (hours === 23 && minutes === 59 && seconds === 59) {
-          setFreeDelivery(false)
-          setUpdated(true)
-          const clothsData = await fetchAllCloths()
-          const cloth = clothsData.find((product) => product.id === id)
-          cloth.freeDelivery = false
-          await updateClothById(product.id, cloth)
-          clearInterval(timerId)
+        try {
+          const currentTime = new Date()
+          const hours = currentTime.getHours()
+          const minutes = currentTime.getMinutes()
+          const seconds = currentTime.getSeconds()
+          setTime(`${23 - hours}:${59 - minutes}:${59 - seconds}`)
+          // console.log(hours, minutes, seconds)
+          if (hours === 23 && minutes === 59 && seconds === 59) {
+            setFreeDelivery(false)
+            setUpdated(true)
+            const cloth = await fetchClothById(
+              e.target.value,
+              undefined,
+              setIsError,
+            )
+            cloth.freeDelivery = false
+            await updateClothById(product.id, cloth, undefined, setIsError)
+            clearInterval(timerId)
+          }
+        } catch (error) {
+          console.error(error)
+          setIsError(error.message)
         }
       }, 1000)
     } else {
@@ -413,48 +565,44 @@ export default function ProductDetailsPage() {
   }, [])
 
   useEffect(() => {
-    // set createOrder for every mount
-    const arr = [product]
-    const controller = new AbortController()
-
-    updateAllItems(
-      "https://e-commerce-website-backend-pi.vercel.app/createOrder/updateItems",
-      arr,
-      controller.signal,
-    )
-
-    const input1 = document.querySelector(
-      "#root > main > div > section.frequentlyBoughtSection > div > div:nth-child(3) > div.frequently-bought-image > input[type=checkbox]",
-    )
+    const input1 = document.querySelector("#frequentlyBoughtItem2Checkbox")
     if (input1) {
       input1.checked = false
     }
-    const input2 = document.querySelector(
-      "#root > main > div > section.frequentlyBoughtSection > div > div.frequently-bought-item.frequentlyBoughtThirdItem > div.frequently-bought-image > input[type=checkbox]",
-    )
+    const input2 = document.querySelector("#frequentlyBoughtItem3Checkbox")
     if (input2) {
       input2.checked = false
     }
-
-    return () => {
-      controller.abort()
-    }
   }, [id])
 
-  const similarProductIds = product.similarProducts.map((product) => product.id)
-  const similarProducts = finalClothsData.filter((product) =>
-    similarProductIds.includes(product.id),
-  )
+  useEffect(() => {
+    // set createOrder for every mount
+    async function updateCreateOrderData() {
+      try {
+        if (product) {
+          const obj = { products: [product], userId }
+          userId && (await updateCreateOrder(userId, obj))
+        }
+      } catch (error) {
+        console.error(error)
+        setIsError(error.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    updateCreateOrderData()
+  }, [product])
 
-  const additionalInformationKeys = Object.keys(
-    product.productDetails.additionalInformation,
-  )
+  const additionalInformationKeys =
+    product && Object.keys(product.productDetails.additionalInformation)
 
-  const itemDetailsKeys = Object.keys(product.productDetails.itemDetails)
+  const itemDetailsKeys =
+    product && Object.keys(product.productDetails.itemDetails)
 
-  const styleKeys = Object.keys(product.productDetails.style)
+  const styleKeys = product && Object.keys(product.productDetails.style)
 
-  const topHighlightsKeys = Object.keys(product.productDetails.topHighlights)
+  const topHighlightsKeys =
+    product && Object.keys(product.productDetails.topHighlights)
 
   function camelCaseToTitle(camelCase) {
     const wordsArray = []
@@ -476,42 +624,69 @@ export default function ProductDetailsPage() {
   }
 
   async function addToCreateOrder(e, productId) {
-    const checked = e.target.checked
-    const createOrderItems = await fetchCreateOrder()
-    const product = finalClothsData.find((item) => item.id === productId)
-    const isIncluded = createOrderItems.filter((item) => item.id === product.id)
-      .length
-      ? true
-      : false
-    if (checked) {
-      if (!isIncluded) {
-        if (size) {
-          product.size = size
+    try {
+      const checked = e.target.checked
+      const createOrderArr = await fetchCreateOrderByUserId(
+        userId,
+        undefined,
+        setIsError,
+      )
+      const product = await fetchClothById(productId, undefined, setIsError)
+      const isIncluded = createOrderArr[0].products.filter(
+        (item) => item.id === product.id,
+      ).length
+        ? true
+        : false
+      if (checked) {
+        if (!isIncluded) {
+          if (size) {
+            product.size = size
+          }
+          product.quantity = 1
+          createOrderArr[0].products.push(product)
+          const createOrderObj = {
+            products: createOrderArr[0].products,
+            userId,
+          }
+          await fetchCreateOrderByUserIdAndUpdate(
+            userId,
+            createOrderObj,
+            undefined,
+            setIsError,
+          )
         }
-        product.quantity = 1
-        createOrderItems.push(product)
-        await updateAllItemsInCreateOrder(
-          "https://e-commerce-website-backend-pi.vercel.app/createOrder/updateItems",
-          createOrderItems,
-        )
+      } else {
+        if (isIncluded) {
+          const updatedItem = createOrderArr[0].products.filter(
+            (item) => item.id !== product.id,
+          )
+          const createOrderObj = { products: updatedItem, userId }
+          await fetchCreateOrderByUserIdAndUpdate(
+            userId,
+            createOrderObj,
+            undefined,
+            setIsError,
+          )
+        }
       }
-    } else {
-      if (isIncluded) {
-        const updatedItem = createOrderItems.filter(
-          (item) => item.id !== product.id,
-        )
-        await updateAllItemsInCreateOrder(
-          "https://e-commerce-website-backend-pi.vercel.app/createOrder/updateItems",
-          updatedItem,
-        )
-      }
+      setUpdated(true)
+    } catch (error) {
+      console.error(error)
+      setIsError(error.message)
     }
-    setUpdated(true)
+  }
+
+  if (isError) {
+    return <Error />
+  }
+
+  if (!product || !similarProducts.length) {
+    return
   }
 
   return (
     <>
-      {userId && !user ? (
+      {loading || !user ? (
         <ProductDetailsShimmer />
       ) : (
         <>
@@ -588,7 +763,11 @@ export default function ProductDetailsPage() {
                         <button
                           className="btn btn-secondary w-100 mb-2"
                           value={product.id}
-                          onClick={addToCart}
+                          onClick={(e) =>
+                            userId
+                              ? addToCart(e)
+                              : toast("Please login to your account")
+                          }
                         >
                           {product.addToCart ? "Added To Cart" : "Add To cart"}
                         </button>
@@ -609,7 +788,11 @@ export default function ProductDetailsPage() {
                           className="btn btn-outline-secondary w-100 mb-2"
                           style={{ fontSize: "15px" }}
                           value={product.id}
-                          onClick={addToWishlist}
+                          onClick={(e) =>
+                            userId
+                              ? addToWishlist(e)
+                              : toast("Please login to your account")
+                          }
                         >
                           {product.addToWishList
                             ? "Added To Wishlist"
@@ -677,7 +860,11 @@ export default function ProductDetailsPage() {
                     <div className={`${styles.quantityBtnContainer} mb-3`}>
                       <button
                         className={`rounded-circle border border-1 ${styles.decrease_count_btn}`}
-                        onClick={decreaseCount}
+                        onClick={(e) =>
+                          userId
+                            ? decreaseCount(e)
+                            : toast("Please login to your account")
+                        }
                       >
                         {" "}
                         -{" "}
@@ -690,27 +877,38 @@ export default function ProductDetailsPage() {
                         style={{ width: "30px" }}
                         className="mx-2 text-center"
                         onChange={async (e) => {
-                          // Update user in Database
-                          const clothItem = user.addToCartItems.find(
-                            (item) => item.id === id,
-                          )
-                          if (clothItem) {
-                            clothItem.quantity = Number(e.target.value)
-                            await updateCartItemsInUser(
-                              user._id,
-                              user.addToCartItems,
+                          try {
+                            // Update user in Database
+                            const clothItem = user.addToCartItems.find(
+                              (item) => item.id === id,
                             )
+                            if (clothItem) {
+                              clothItem.quantity = Number(e.target.value)
+                              await updateCartItemsInUser(
+                                user._id,
+                                user.addToCartItems,
+                                undefined,
+                                setIsError,
+                              )
+                            }
+
+                            setQuantity(Number(e.target.value))
+
+                            // To update clothsData, createOrder and the variables present in this page
+                            setUpdated(true)
+                          } catch (error) {
+                            console.error(error)
+                            setIsError(error.message)
                           }
-
-                          setQuantity(Number(e.target.value))
-
-                          // To update clothsData, createOrder and the variables present in this page
-                          setUpdated(true)
                         }}
                       />
                       <button
                         className={`rounded-circle border border-1 ${styles.increase_count_btn}`}
-                        onClick={increaseCount}
+                        onClick={(e) =>
+                          userId
+                            ? increaseCount(e)
+                            : toast("Please login to your account")
+                        }
                       >
                         {" "}
                         +{" "}
@@ -725,40 +923,52 @@ export default function ProductDetailsPage() {
                       <button
                         className="border border-1 me-2 mb-2"
                         onClick={async (e) => {
-                          setSize("S")
+                          try {
+                            if (userId) {
+                              setSize("S")
 
-                          // Update user in Database
-                          const isClothAddedToCart = user.addToCartItems.find(
-                            (item) => item.id === id,
-                          )
-                          if (isClothAddedToCart) {
-                            isClothAddedToCart.size = "S"
-                            await updateCartItemsInUser(
-                              user._id,
-                              user.addToCartItems,
-                            )
-                          }
-
-                          // To update clothsData, createOrder and the variables present in this page
-                          setUpdated(true)
-
-                          // For interactivity
-                          const btn = e.target
-                          btn.innerHTML = "✓"
-                          setTimeout(() => {
-                            btn.innerHTML = "S"
-                            btn.style.backgroundColor = "green"
-                            btn.style.color = "white"
-                            const parentElement = btn.parentElement
-                            const siblings = parentElement.children
-                            const arrayOfSiblings = [...siblings]
-                            arrayOfSiblings.forEach((sibling) => {
-                              if (sibling !== btn) {
-                                sibling.style.backgroundColor = ""
-                                sibling.style.color = ""
+                              // Update user in Database
+                              const isClothAddedToCart =
+                                user.addToCartItems.find(
+                                  (item) => item.id === id,
+                                )
+                              if (isClothAddedToCart) {
+                                isClothAddedToCart.size = "S"
+                                await updateCartItemsInUser(
+                                  user._id,
+                                  user.addToCartItems,
+                                  undefined,
+                                  setIsError,
+                                )
                               }
-                            })
-                          }, 500)
+
+                              // To update clothsData, createOrder and the variables present in this page
+                              setUpdated(true)
+
+                              // For interactivity
+                              const btn = e.target
+                              btn.innerHTML = "✓"
+                              setTimeout(() => {
+                                btn.innerHTML = "S"
+                                btn.style.backgroundColor = "green"
+                                btn.style.color = "white"
+                                const parentElement = btn.parentElement
+                                const siblings = parentElement.children
+                                const arrayOfSiblings = [...siblings]
+                                arrayOfSiblings.forEach((sibling) => {
+                                  if (sibling !== btn) {
+                                    sibling.style.backgroundColor = ""
+                                    sibling.style.color = ""
+                                  }
+                                })
+                              }, 500)
+                            } else {
+                              toast("Please login to your account")
+                            }
+                          } catch (error) {
+                            console.error(error)
+                            setIsError(error.message)
+                          }
                         }}
                       >
                         S
@@ -766,40 +976,53 @@ export default function ProductDetailsPage() {
                       <button
                         className="border border-1 me-2 mb-2"
                         onClick={async (e) => {
-                          setSize("M")
+                          try {
+                            if (userId) {
+                              setSize("M")
 
-                          // Update user in Database
-                          const isClothAddedToCart =
-                            user &&
-                            user.addToCartItems.find((item) => item.id === id)
-                          if (isClothAddedToCart) {
-                            isClothAddedToCart.size = "M"
-                            await updateCartItemsInUser(
-                              user._id,
-                              user.addToCartItems,
-                            )
-                          }
-
-                          // To update clothsData, createOrder and the variables present in this page
-                          setUpdated(true)
-
-                          // For interactivity
-                          const btn = e.target
-                          btn.innerHTML = "✓"
-                          setTimeout(() => {
-                            btn.innerHTML = "M"
-                            btn.style.backgroundColor = "green"
-                            btn.style.color = "white"
-                            const parentElement = btn.parentElement
-                            const siblings = parentElement.children
-                            const arrayOfSiblings = [...siblings]
-                            arrayOfSiblings.forEach((sibling) => {
-                              if (sibling !== btn) {
-                                sibling.style.backgroundColor = ""
-                                sibling.style.color = ""
+                              // Update user in Database
+                              const isClothAddedToCart =
+                                user &&
+                                user.addToCartItems.find(
+                                  (item) => item.id === id,
+                                )
+                              if (isClothAddedToCart) {
+                                isClothAddedToCart.size = "M"
+                                await updateCartItemsInUser(
+                                  user._id,
+                                  user.addToCartItems,
+                                  undefined,
+                                  setIsError,
+                                )
                               }
-                            })
-                          }, 500)
+
+                              // To update clothsData, createOrder and the variables present in this page
+                              setUpdated(true)
+
+                              // For interactivity
+                              const btn = e.target
+                              btn.innerHTML = "✓"
+                              setTimeout(() => {
+                                btn.innerHTML = "M"
+                                btn.style.backgroundColor = "green"
+                                btn.style.color = "white"
+                                const parentElement = btn.parentElement
+                                const siblings = parentElement.children
+                                const arrayOfSiblings = [...siblings]
+                                arrayOfSiblings.forEach((sibling) => {
+                                  if (sibling !== btn) {
+                                    sibling.style.backgroundColor = ""
+                                    sibling.style.color = ""
+                                  }
+                                })
+                              }, 500)
+                            } else {
+                              toast("Please login to your account")
+                            }
+                          } catch (error) {
+                            console.error(error)
+                            setIsError(error.message)
+                          }
                         }}
                       >
                         M
@@ -807,40 +1030,52 @@ export default function ProductDetailsPage() {
                       <button
                         className="border border-1 me-2 mb-2"
                         onClick={async (e) => {
-                          setSize("L")
+                          try {
+                            if (userId) {
+                              setSize("L")
 
-                          // Update user in Database
-                          const isClothAddedToCart = user.addToCartItems.find(
-                            (item) => item.id === id,
-                          )
-                          if (isClothAddedToCart) {
-                            isClothAddedToCart.size = "L"
-                            await updateCartItemsInUser(
-                              user._id,
-                              user.addToCartItems,
-                            )
-                          }
-
-                          // To update clothsData, createOrder and the variables present in this page
-                          setUpdated(true)
-
-                          // For interactivity
-                          const btn = e.target
-                          btn.innerHTML = "✓"
-                          setTimeout(() => {
-                            btn.innerHTML = "L"
-                            btn.style.backgroundColor = "green"
-                            btn.style.color = "white"
-                            const parentElement = btn.parentElement
-                            const siblings = parentElement.children
-                            const arrayOfSiblings = [...siblings]
-                            arrayOfSiblings.forEach((sibling) => {
-                              if (sibling !== btn) {
-                                sibling.style.backgroundColor = ""
-                                sibling.style.color = ""
+                              // Update user in Database
+                              const isClothAddedToCart =
+                                user.addToCartItems.find(
+                                  (item) => item.id === id,
+                                )
+                              if (isClothAddedToCart) {
+                                isClothAddedToCart.size = "L"
+                                await updateCartItemsInUser(
+                                  user._id,
+                                  user.addToCartItems,
+                                  undefined,
+                                  setIsError,
+                                )
                               }
-                            })
-                          }, 500)
+
+                              // To update clothsData, createOrder and the variables present in this page
+                              setUpdated(true)
+
+                              // For interactivity
+                              const btn = e.target
+                              btn.innerHTML = "✓"
+                              setTimeout(() => {
+                                btn.innerHTML = "L"
+                                btn.style.backgroundColor = "green"
+                                btn.style.color = "white"
+                                const parentElement = btn.parentElement
+                                const siblings = parentElement.children
+                                const arrayOfSiblings = [...siblings]
+                                arrayOfSiblings.forEach((sibling) => {
+                                  if (sibling !== btn) {
+                                    sibling.style.backgroundColor = ""
+                                    sibling.style.color = ""
+                                  }
+                                })
+                              }, 500)
+                            } else {
+                              toast("Please login to your account")
+                            }
+                          } catch (error) {
+                            console.error(error)
+                            setIsError(error.message)
+                          }
                         }}
                       >
                         L
@@ -848,40 +1083,52 @@ export default function ProductDetailsPage() {
                       <button
                         className="border border-1 me-2 mb-2"
                         onClick={async (e) => {
-                          setSize("XL")
+                          try {
+                            if (userId) {
+                              setSize("XL")
 
-                          // Update user in Database
-                          const isClothAddedToCart = user.addToCartItems.find(
-                            (item) => item.id === id,
-                          )
-                          if (isClothAddedToCart) {
-                            isClothAddedToCart.size = "XL"
-                            await updateCartItemsInUser(
-                              user._id,
-                              user.addToCartItems,
-                            )
-                          }
-
-                          // To update clothsData, createOrder and the variables present in this page
-                          setUpdated(true)
-
-                          // For interactivity
-                          const btn = e.target
-                          btn.innerHTML = "✓"
-                          setTimeout(() => {
-                            btn.innerHTML = "XL"
-                            btn.style.backgroundColor = "green"
-                            btn.style.color = "white"
-                            const parentElement = btn.parentElement
-                            const siblings = parentElement.children
-                            const arrayOfSiblings = [...siblings]
-                            arrayOfSiblings.forEach((sibling) => {
-                              if (sibling !== btn) {
-                                sibling.style.backgroundColor = ""
-                                sibling.style.color = ""
+                              // Update user in Database
+                              const isClothAddedToCart =
+                                user.addToCartItems.find(
+                                  (item) => item.id === id,
+                                )
+                              if (isClothAddedToCart) {
+                                isClothAddedToCart.size = "XL"
+                                await updateCartItemsInUser(
+                                  user._id,
+                                  user.addToCartItems,
+                                  undefined,
+                                  setIsError,
+                                )
                               }
-                            })
-                          }, 500)
+
+                              // To update clothsData, createOrder and the variables present in this page
+                              setUpdated(true)
+
+                              // For interactivity
+                              const btn = e.target
+                              btn.innerHTML = "✓"
+                              setTimeout(() => {
+                                btn.innerHTML = "XL"
+                                btn.style.backgroundColor = "green"
+                                btn.style.color = "white"
+                                const parentElement = btn.parentElement
+                                const siblings = parentElement.children
+                                const arrayOfSiblings = [...siblings]
+                                arrayOfSiblings.forEach((sibling) => {
+                                  if (sibling !== btn) {
+                                    sibling.style.backgroundColor = ""
+                                    sibling.style.color = ""
+                                  }
+                                })
+                              }, 500)
+                            } else {
+                              toast("Please login to your account")
+                            }
+                          } catch (error) {
+                            console.error(error)
+                            setIsError(error.message)
+                          }
                         }}
                       >
                         XL
@@ -889,40 +1136,52 @@ export default function ProductDetailsPage() {
                       <button
                         className="border border-1 mb-2"
                         onClick={async (e) => {
-                          setSize("XXL")
+                          try {
+                            if (userId) {
+                              setSize("XXL")
 
-                          // Update user in Database
-                          const isClothAddedToCart = user.addToCartItems.find(
-                            (item) => item.id === id,
-                          )
-                          if (isClothAddedToCart) {
-                            isClothAddedToCart.size = "XXL"
-                            await updateCartItemsInUser(
-                              user._id,
-                              user.addToCartItems,
-                            )
-                          }
-
-                          // To update clothsData, createOrder and the variables present in this page
-                          setUpdated(true)
-
-                          // For interactivity
-                          const btn = e.target
-                          btn.innerHTML = "✓"
-                          setTimeout(() => {
-                            btn.innerHTML = "XXL"
-                            btn.style.backgroundColor = "green"
-                            btn.style.color = "white"
-                            const parentElement = btn.parentElement
-                            const siblings = parentElement.children
-                            const arrayOfSiblings = [...siblings]
-                            arrayOfSiblings.forEach((sibling) => {
-                              if (sibling !== btn) {
-                                sibling.style.backgroundColor = ""
-                                sibling.style.color = ""
+                              // Update user in Database
+                              const isClothAddedToCart =
+                                user.addToCartItems.find(
+                                  (item) => item.id === id,
+                                )
+                              if (isClothAddedToCart) {
+                                isClothAddedToCart.size = "XXL"
+                                await updateCartItemsInUser(
+                                  user._id,
+                                  user.addToCartItems,
+                                  undefined,
+                                  setIsError,
+                                )
                               }
-                            })
-                          }, 500)
+
+                              // To update clothsData, createOrder and the variables present in this page
+                              setUpdated(true)
+
+                              // For interactivity
+                              const btn = e.target
+                              btn.innerHTML = "✓"
+                              setTimeout(() => {
+                                btn.innerHTML = "XXL"
+                                btn.style.backgroundColor = "green"
+                                btn.style.color = "white"
+                                const parentElement = btn.parentElement
+                                const siblings = parentElement.children
+                                const arrayOfSiblings = [...siblings]
+                                arrayOfSiblings.forEach((sibling) => {
+                                  if (sibling !== btn) {
+                                    sibling.style.backgroundColor = ""
+                                    sibling.style.color = ""
+                                  }
+                                })
+                              }, 500)
+                            } else {
+                              toast("Please login to your account")
+                            }
+                          } catch (error) {
+                            console.error(error)
+                            setIsError(error.message)
+                          }
                         }}
                       >
                         XXL
@@ -1532,10 +1791,15 @@ export default function ProductDetailsPage() {
                       />
                       <input
                         type="checkbox"
+                        id="frequentlyBoughtItem2Checkbox"
                         style={{ cursor: "pointer" }}
                         onChange={(e) => {
-                          addToCreateOrder(e, similarProducts[2].id)
-                          setCheckBox1Clicked(checkBox1Clicked ? false : true)
+                          if (userId) {
+                            addToCreateOrder(e, similarProducts[2].id)
+                            setCheckBox1Clicked(checkBox1Clicked ? false : true)
+                          } else {
+                            toast("Please login to your account")
+                          }
                         }}
                       />
                     </div>
@@ -1597,10 +1861,15 @@ export default function ProductDetailsPage() {
                       />
                       <input
                         type="checkbox"
+                        id="frequentlyBoughtItem3Checkbox"
                         style={{ cursor: "pointer" }}
                         onChange={(e) => {
-                          addToCreateOrder(e, similarProducts[3].id)
-                          setCheckBox2Clicked(checkBox2Clicked ? false : true)
+                          if (userId) {
+                            addToCreateOrder(e, similarProducts[3].id)
+                            setCheckBox2Clicked(checkBox2Clicked ? false : true)
+                          } else {
+                            toast("Please login to your account")
+                          }
                         }}
                       />
                     </div>
@@ -1950,7 +2219,11 @@ export default function ProductDetailsPage() {
                             <button
                               className="btn btn-warning btn-sm rounded-pill mt-2"
                               value={product.id}
-                              onClick={addToCart}
+                              onClick={(e) =>
+                                userId
+                                  ? addToCart(e)
+                                  : toast("Please login to your account")
+                              }
                             >
                               {product.addToCart
                                 ? "Added To Cart"
@@ -1958,12 +2231,9 @@ export default function ProductDetailsPage() {
                             </button>
                           </div>
                         </td>
-                        {product.similarProducts.map((item) => {
-                          const product = finalClothsData.find(
-                            (product) => product.id === item.id,
-                          )
+                        {similarProducts.map((product) => {
                           return (
-                            <td key={item.id}>
+                            <td key={product.id}>
                               <div className="similarItems-item1 item">
                                 <img src={product.url} alt="" />
                                 <Link
@@ -1998,7 +2268,11 @@ export default function ProductDetailsPage() {
                                   <button
                                     className="btn btn-warning btn-sm rounded-pill mt-2"
                                     value={product.id}
-                                    onClick={addToCart}
+                                    onClick={(e) =>
+                                      userId
+                                        ? addToCart(e)
+                                        : toast("Please login to your account")
+                                    }
                                   >
                                     {product.addToCart
                                       ? "Added To Cart"
@@ -2037,12 +2311,9 @@ export default function ProductDetailsPage() {
                             M.R.P: <span>{product.price}</span>
                           </p>
                         </td>
-                        {product.similarProducts.map((item) => {
-                          const product = finalClothsData.find(
-                            (product) => product.id === item.id,
-                          )
+                        {similarProducts.map((product) => {
                           return (
-                            <td key={item.id}>
+                            <td key={product.id}>
                               <p className={`${styles.discountedPrice} my-0`}>
                                 <span className={`${styles.discount} me-2`}>
                                   -{product.discount}
@@ -2099,12 +2370,9 @@ export default function ProductDetailsPage() {
                           <b className="text-success">{product.rating}</b> out
                           of 5
                         </td>
-                        {product.similarProducts.map((item) => {
-                          const product = finalClothsData.find(
-                            (product) => product.id === item.id,
-                          )
+                        {similarProducts.map((Product) => {
                           return (
-                            <td key={item.id}>
+                            <td key={Product.id}>
                               <b className="text-success">{product.rating}</b>{" "}
                               out of 5
                             </td>
@@ -2114,11 +2382,8 @@ export default function ProductDetailsPage() {
                       <tr>
                         <td>Sold By</td>
                         <td>{product.soldBy}</td>
-                        {product.similarProducts.map((item) => {
-                          const product = finalClothsData.find(
-                            (product) => product.id === item.id,
-                          )
-                          return <td key={item.id}>{product.soldBy}</td>
+                        {similarProducts.map((product) => {
+                          return <td key={product.id}>{product.soldBy}</td>
                         })}
                       </tr>
                       <tr>
@@ -2144,12 +2409,12 @@ export default function ProductDetailsPage() {
                         <td className="text-success fw-bold">
                           {product.offer}
                         </td>
-                        {product.similarProducts.map((item) => {
-                          const product = finalClothsData.find(
-                            (product) => product.id === item.id,
-                          )
+                        {similarProducts.map((product) => {
                           return (
-                            <td key={item.id} className="text-success fw-bold">
+                            <td
+                              key={product.id}
+                              className="text-success fw-bold"
+                            >
                               {product.offer}
                             </td>
                           )
@@ -2163,12 +2428,9 @@ export default function ProductDetailsPage() {
                             product.gender[0].toUpperCase(),
                           )}
                         </td>
-                        {product.similarProducts.map((item) => {
-                          const product = finalClothsData.find(
-                            (product) => product.id === item.id,
-                          )
+                        {similarProducts.map((product) => {
                           return (
-                            <td key={item.id}>
+                            <td key={product.id}>
                               {product.gender.replace(
                                 product.gender[0],
                                 product.gender[0].toUpperCase(),
@@ -2182,12 +2444,12 @@ export default function ProductDetailsPage() {
                         <td className="text-success fw-bold">
                           {product.mainCategory.join(", ")}
                         </td>
-                        {product.similarProducts.map((item) => {
-                          const product = finalClothsData.find(
-                            (product) => product.id === item.id,
-                          )
+                        {similarProducts.map((product) => {
                           return (
-                            <td key={item.id} className="text-success fw-bold">
+                            <td
+                              key={product.id}
+                              className="text-success fw-bold"
+                            >
                               {product.mainCategory.join(", ")}
                             </td>
                           )
@@ -2196,11 +2458,8 @@ export default function ProductDetailsPage() {
                       <tr>
                         <td>Cloth Material</td>
                         <td>{product.material}</td>
-                        {product.similarProducts.map((item) => {
-                          const product = finalClothsData.find(
-                            (product) => product.id === item.id,
-                          )
-                          return <td key={item.id}>{product.material}</td>
+                        {similarProducts.map((Product) => {
+                          return <td key={Product.id}>{product.material}</td>
                         })}
                       </tr>
                       <tr>
@@ -2208,12 +2467,9 @@ export default function ProductDetailsPage() {
                         <td>
                           {product.productDetails.topHighlights.countryOfOrigin}
                         </td>
-                        {product.similarProducts.map((item) => {
-                          const product = finalClothsData.find(
-                            (product) => product.id === item.id,
-                          )
+                        {similarProducts.map((Product) => {
                           return (
-                            <td key={item.id}>
+                            <td key={Product.id}>
                               {
                                 product.productDetails.topHighlights
                                   .countryOfOrigin
@@ -2322,7 +2578,11 @@ export default function ProductDetailsPage() {
                                   <button
                                     className={`btn btn-secondary w-100 mb-2 ${styles.addToCart}`}
                                     value={product.id}
-                                    onClick={addToCart}
+                                    onClick={(e) =>
+                                      userId
+                                        ? addToCart(e)
+                                        : toast("Please login to your account")
+                                    }
                                   >
                                     {product.addToCart
                                       ? "Added To Cart"
@@ -2348,7 +2608,11 @@ export default function ProductDetailsPage() {
                                   <button
                                     className={`btn btn-outline-secondary w-100 mb-2 ${styles.saveToWishlist}`}
                                     value={product.id}
-                                    onClick={addToWishlist}
+                                    onClick={(e) =>
+                                      userId
+                                        ? addToWishlist(e)
+                                        : toast("Please login to your account")
+                                    }
                                   >
                                     {product.addToWishList
                                       ? "Added To Wishlist"

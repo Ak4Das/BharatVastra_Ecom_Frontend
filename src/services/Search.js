@@ -27,7 +27,10 @@ export function Search(clothsData, query) {
 
     return products
       .map((product) => {
-        const name = product.commonCategory.toLowerCase()
+        const name =
+          typeof product === "string"
+            ? product.toLowerCase()
+            : product.commonCategory.toLowerCase()
         let score = 0
 
         // Exact match
@@ -55,7 +58,9 @@ export function Search(clothsData, query) {
             }
           })
         }
-        return { ...product, score }
+        return typeof product === "string"
+          ? { product, score }
+          : { ...product, score }
       })
       .filter((p) => p.score > 0)
   }

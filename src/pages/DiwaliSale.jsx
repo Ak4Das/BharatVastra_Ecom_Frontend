@@ -19,28 +19,46 @@ import diwaliDecoration13 from "../assets/images/diwaliDecoration13.png"
 import { Link } from "react-router-dom"
 import SearchInPage from "../components/SearchInPage"
 import { useState, useEffect } from "react"
-import { fetchUserById } from "../components/FetchRequests"
+import { fetchUserById } from "../services/FetchRequests"
 import DiwaliSaleShimmer from "../shimmers/DiwaliSale.shimmer"
 import Footer from "../components/Footer"
+import GetUserId from "../services/GetClothsData"
+import Error from "../components/Error"
 
 export default function DiwaliSale() {
+  const [loading, setLoading] = useState(false)
+  const [isError, setIsError] = useState("")
   const [search, setSearch] = useState("")
   console.log(search)
 
-  const userId = localStorage.getItem("userId")
+  const userId = GetUserId()
   const [user, setUser] = useState(null)
 
   useEffect(() => {
     async function fetchData() {
-      const user = await fetchUserById(userId)
-      setUser(user)
+      try {
+        setLoading(true)
+
+        if (userId) {
+          const user = await fetchUserById(userId, setUser, setIsError)
+        }
+      } catch (error) {
+        console.error(error)
+        setIsError(error.message)
+      } finally {
+        setLoading(false)
+      }
     }
     fetchData()
   }, [])
 
+  if (isError) {
+    return <Error />
+  }
+
   return (
     <>
-      {userId && !user ? (
+      {loading || !user ? (
         <DiwaliSaleShimmer />
       ) : (
         <>
@@ -338,6 +356,7 @@ export default function DiwaliSale() {
                       type="text"
                       value="HAPPYDIWALI"
                       className={`form-control fw-bold ${styles.couponInput}`}
+                      readOnly
                     ></input>
                   </div>
                   <div className="">

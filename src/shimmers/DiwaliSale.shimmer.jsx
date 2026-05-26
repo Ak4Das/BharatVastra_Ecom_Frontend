@@ -1,4 +1,4 @@
-import { HeaderShimmer } from "../components/styledComponents.js"
+import { HeaderShimmer } from "../services/styledComponents.js"
 import styles from "../style_modules/shimmer_modules/DiwaliSaleShimmer.module.css"
 import background2 from "../assets/images/background2.png"
 import diwaliDecoration5 from "../assets/images/diwaliDecoration5.png"

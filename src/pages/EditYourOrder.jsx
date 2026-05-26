@@ -6,21 +6,22 @@ import Plus from "../assets/images/plus.png"
 import Card from "../assets/images/card.png"
 import Cross from "../assets/images/cross.png"
 import { useParams } from "react-router-dom"
-import SearchInPage from "../components/SearchInPage"
 import { toast } from "react-toastify"
 import {
   fetchUserById,
-  fetchAllOrders,
+  fetchOrderByOrderId,
   deleteOrderById,
   updateOrder,
-} from "../components/FetchRequests"
+} from "../services/FetchRequests"
 import EditYourOrderShimmer from "../shimmers/EditYourOrder.shimmer"
 import Footer from "../components/Footer"
+import GetUserId from "../services/GetClothsData"
+import Error from "../components/Error"
 
 export default function EditYourOrder() {
+  const [loading, setLoading] = useState(false)
+  const [isError, setIsError] = useState("")
   const orderId = Number(useParams().orderId)
-  const [search, setSearch] = useState("")
-  console.log(search)
 
   /* isUpdated useState is used to rerender the page if quantity will change 
   to update the variables present on this page */
@@ -59,15 +60,20 @@ export default function EditYourOrder() {
   // deliveryCharge useState is used only to retain the new delivery charge if user delete a item
   const [deliveryCharge, setDeliveryCharge] = useState(0)
 
-  const [allOrders, setAllOrders] = useState([])
+  const [order, setOrder] = useState([])
 
-  const orders = allOrders || []
+  const [orderToBeEdit, setOrderToBeEdit] = useState({})
 
-  const orderToBeEdit = orders.find((order) => order.id === orderId)
+  const [products, setProducts] = useState([])
 
-  const [products, setProducts] = useState(orderToBeEdit && orderToBeEdit.item)
+  useEffect(() => {
+    if (order.length) {
+      setOrderToBeEdit(order[0])
+      setProducts(order[0].item)
+    }
+  }, [order])
 
-  const userId = localStorage.getItem("userId")
+  const userId = GetUserId()
   const [user, setUser] = useState(null)
   const address = user && user.address.find((address) => address.selected)
 
@@ -82,62 +88,78 @@ export default function EditYourOrder() {
           : orderToBeEdit.totalPrice)
 
   async function save(e) {
-    const order = {
-      id: orderToBeEdit.id,
-      item: products,
-      address,
-      paymentMethod: paymentMethod
-        ? paymentMethod
-        : orderToBeEdit.paymentMethod,
-      deliveryCharge: deliveryCharge
-        ? deliveryCharge
-        : orderToBeEdit.deliveryCharge,
-      orderDate: orderToBeEdit.orderDate,
-      orderTime: orderToBeEdit.orderTime,
-      deliveryDate: orderToBeEdit.deliveryDate,
-      deliveryDay: orderToBeEdit.deliveryDay,
-      sale: orderToBeEdit.sale,
-      totalPrice: totalPrice
-        ? Math.round(totalPrice + deductPrice)
-        : Math.round(orderToBeEdit.totalPrice + deductPrice),
+    try {
+      const order = {
+        id: orderToBeEdit.id,
+        item: products,
+        address,
+        paymentMethod: paymentMethod
+          ? paymentMethod
+          : orderToBeEdit.paymentMethod,
+        deliveryCharge: deliveryCharge
+          ? deliveryCharge
+          : orderToBeEdit.deliveryCharge,
+        orderDate: orderToBeEdit.orderDate,
+        orderTime: orderToBeEdit.orderTime,
+        deliveryDate: orderToBeEdit.deliveryDate,
+        deliveryDay: orderToBeEdit.deliveryDay,
+        sale: orderToBeEdit.sale,
+        totalPrice: totalPrice
+          ? Math.round(totalPrice + deductPrice)
+          : Math.round(orderToBeEdit.totalPrice + deductPrice),
+      }
+      order && order.item.length === 0
+        ? await deleteOrderById(order.id, setIsError)
+        : await updateOrder(order.id, order, undefined, setIsError)
+
+      setDeductPrice(0)
+
+      const btn = e.target
+      btn.innerHTML = "Changes Saved"
+      setTimeout(() => {
+        btn.innerHTML = "Save Changes"
+      }, 1000)
+
+      setUpdated(true)
+
+      toast("Changes Saved Successfully😊")
+    } catch (error) {
+      console.error(error)
+      setIsError(error.message)
     }
-    order && order.item.length === 0
-      ? await deleteOrderById(order.id)
-      : await updateOrder(order.id, order)
-
-    setDeductPrice(0)
-
-    const btn = e.target
-    btn.innerHTML = "Changes Saved"
-    setTimeout(() => {
-      btn.innerHTML = "Save Changes"
-    }, 1000)
-
-    setUpdated(true)
-
-    toast("Changes Saved Successfully😊")
   }
 
   useEffect(() => {
     async function fetchData() {
-      const user = await fetchUserById(userId)
-      setUser(user)
-      const orders = await fetchAllOrders()
-      setAllOrders(orders)
-      if (orders) {
-        const orderToBeEdit = orders.find((order) => order.id === orderId)
-        setProducts(orderToBeEdit && orderToBeEdit.item)
-      }
-      if (isUpdated) {
-        setUpdated(false)
+      try {
+        setLoading(true)
+
+        await fetchUserById(userId, setUser, setIsError)
+        const order = await fetchOrderByOrderId(orderId, setOrder, setIsError)
+        if (order) {
+          const orderToBeEdit = order.find((order) => order.id === orderId)
+          setProducts(orderToBeEdit && orderToBeEdit.item)
+        }
+        if (isUpdated) {
+          setUpdated(false)
+        }
+      } catch (error) {
+        console.error(error)
+        setIsError(error.message)
+      } finally {
+        setLoading(false)
       }
     }
     fetchData()
   }, [isUpdated])
 
+  if (isError) {
+    return <Error />
+  }
+
   return (
     <>
-      {!orders ? (
+      {loading || !order ? (
         <EditYourOrderShimmer />
       ) : (
         <>
@@ -145,14 +167,8 @@ export default function EditYourOrder() {
             position="static"
             top="auto"
             zIndex="auto"
-            setSearch={setSearch}
             isSearchBarNeeded={false}
             userDetails={user}
-          />
-          <SearchInPage
-            margin="ms-3"
-            setSearch={setSearch}
-            isSearchBarNeeded={false}
           />
           <h1 className="text-success fw-medium my-3 container">Edit Order</h1>
           {orderToBeEdit && (

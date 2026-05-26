@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { FooterWrapper } from "./styledComponents"
+import { FooterWrapper } from "../services/styledComponents"
 import { FaDiscord, FaInstagram, FaYoutube } from "react-icons/fa"
 
 export default function Footer() {
@@ -13,9 +13,8 @@ export default function Footer() {
           </div>
 
           <div>
-            <Link to="/" className="btn text-light text-decoration-none">
-              {" "}
-              Get Started{" "}
+            <Link to="/contactUs" className="btn text-light text-decoration-none">
+              Get Started
             </Link>
           </div>
         </div>

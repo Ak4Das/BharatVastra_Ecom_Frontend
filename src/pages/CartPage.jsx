@@ -1,46 +1,80 @@
 import styles from "../style_modules/pages_modules/CartPage.module.css"
 import Header from "../components/Header"
-import GetClothsData from "../components/GetClothsData"
 import { Link } from "react-router-dom"
 import { useState } from "react"
 import SearchInPage from "../components/SearchInPage"
 import { toast } from "react-toastify"
 import { useEffect } from "react"
 import {
-  fetchCreateOrder,
-  updateAllItemsInCreateOrder,
+  fetchCreateOrderByUserId,
+  fetchCreateOrderByUserIdAndUpdate,
   fetchUserById,
   updateWishlistItemsInUser,
   updateCartItemsInUser,
-} from "../components/FetchRequests.js"
+  saveCreateOrder,
+  fetchClothById,
+} from "../services/FetchRequests.js"
 import CartPageShimmer from "../shimmers/CartPage.shimmer.jsx"
 import Footer from "../components/Footer.jsx"
+import GetUserId from "../services/GetClothsData.js"
+import { syncUserAndCreateOrder } from "../services/Function.js"
+import Error from "../components/Error.jsx"
 
 export default function CartPage() {
+  const [loading, setLoading] = useState(false)
+  const [isError, setIsError] = useState("")
   const [search, setSearch] = useState("")
   const [isUpdated, setUpdated] = useState(false)
-  const { clothsData, setClothsData } = GetClothsData()
   const [isRemoveFromCart, setIsRemoveFromCart] = useState(false)
   const [isOrderConfirmed, setConfirmOrder] = useState(false)
 
-  const isCloth =
-    search !== ""
-      ? clothsData.filter((cloth) => cloth.commonCategory.includes(search))
-          .length
-        ? true
-        : false
-      : false
+  const userId = GetUserId()
+  const [user, setUser] = useState(null)
+  const [CreateOrderInDatabase, setCreateOrderInDatabase] = useState(null)
+  const [productsInCart, setProductsInCart] = useState([])
 
   useEffect(() => {
-    if (search !== "" && !isCloth) {
-      toast("No such product available")
+    async function syncFunction() {
+      try {
+        setLoading(true)
+
+      } catch (error) {
+        console.error(error)
+        setIsError(error.message)
+      }
     }
-  }, [search])
+    syncFunction()
+  }, [])
 
-  const userId = localStorage.getItem("userId")
-  const [user, setUser] = useState(null)
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        if (userId) {
+          await fetchCreateOrderByUserId(
+            userId,
+            setCreateOrderInDatabase,
+            setIsError,
+          )
+          const user = await fetchUserById(userId, setUser, setIsError)
+          if (user) {
+            const addToCartItemsId = user.addToCartItems.map((item) => item.id)
+            const addToCartItems = await Promise.all(
+              addToCartItemsId.map((id) =>
+                fetchClothById(id, undefined, setIsError),
+              ),
+            )
+            setProductsInCart(addToCartItems)
+          }
+        }
+      } catch (error) {
+        console.error(error)
+        setIsError(error.message)
+      }
+    }
+    fetchData()
+  }, [isUpdated])
 
-  const finalClothsData = clothsData.map((cloth) => {
+  const finalClothsData = productsInCart.map((cloth) => {
     const isClothPresentInCart =
       user && user.addToCartItems.filter((item) => item.id === cloth.id)
     if (isClothPresentInCart && isClothPresentInCart.length) {
@@ -64,49 +98,63 @@ export default function CartPage() {
     return cloth
   })
 
-  const productsInCart = user
-    ? user.addToCartItems.map((cartItem) => {
-        const cloth = finalClothsData.find((item) => item.id === cartItem.id)
-        cloth.addToCart = true
-        cloth.quantity = cartItem.quantity
-        cloth.size = cartItem.size
-        return cloth
-      })
-    : []
   const idOfProductsInCart = productsInCart.map((product) => product.id)
 
-  const [CreateOrderInDatabase, setCreateOrderInDatabase] = useState(null)
-  console.log(CreateOrderInDatabase)
   const uniqueCreateOrderInDatabase =
-    CreateOrderInDatabase &&
-    CreateOrderInDatabase.reduce((acc, item) => {
-      if (!acc.length) {
-        acc.push(item)
-      } else {
-        const searchInAcc = acc.find((obj) => obj.id === item.id) ? true : false
-        if (!searchInAcc) {
-          acc.push(item)
-        }
-      }
-      return acc
-    }, [])
+    CreateOrderInDatabase && CreateOrderInDatabase.length
+      ? CreateOrderInDatabase[0].products.reduce((acc, item) => {
+          if (!acc.length) {
+            acc.push(item)
+          } else {
+            const searchInAcc = acc.find((obj) => obj.id === item.id)
+              ? true
+              : false
+            if (!searchInAcc) {
+              acc.push(item)
+            }
+          }
+          return acc
+        }, [])
+      : []
   const createOrderInDatabase = { item: uniqueCreateOrderInDatabase }
 
-  const [url, setUrl] = useState("")
+  const [permission, setPermission] = useState("")
   const [data, setData] = useState([])
   useEffect(() => {
-    const controller = new AbortController()
-    if (url !== "") {
-      async function updateItems() {
-        await updateAllItemsInCreateOrder(url, data, controller.signal)
-        setUpdated(true)
+    async function updateItems() {
+      try {
+        if (data.length && CreateOrderInDatabase) {
+          const createOrder = { products: data, userId }
+          const response = await fetchCreateOrderByUserId(
+            userId,
+            undefined,
+            setIsError,
+          )
+          if (response.length) {
+            await fetchCreateOrderByUserIdAndUpdate(
+              userId,
+              createOrder,
+              undefined,
+              setIsError,
+            )
+          } else {
+            const response = await saveCreateOrder(
+              createOrder,
+              undefined,
+              setIsError,
+            )
+          }
+          setUpdated(true)
+        }
+      } catch (error) {
+        console.error(error)
+        setIsError(error.message)
+      } finally {
+        setLoading(false)
       }
-      updateItems()
     }
-    return () => {
-      controller.abort()
-    }
-  }, [url])
+    updateItems()
+  }, [data])
 
   const idOfCreateOrderInDatabase =
     createOrderInDatabase &&
@@ -131,28 +179,22 @@ export default function CartPage() {
         }
       }
       if (!pass) {
-        if (url === "" && productsInCart.length) {
-          setUrl(
-            "https://e-commerce-website-backend-pi.vercel.app/createOrder/updateItems",
-          )
+        if (permission === "" && productsInCart.length) {
+          setPermission("allow")
           setData(productsInCart)
         }
       }
       if (idOfProductsInCart && idOfCreateOrderInDatabase) {
         if (idOfProductsInCart.length !== idOfCreateOrderInDatabase.length) {
-          if (url === "" && productsInCart.length) {
-            setUrl(
-              "https://e-commerce-website-backend-pi.vercel.app/createOrder/updateItems",
-            )
+          if (permission === "" && productsInCart.length) {
+            setPermission("allow")
             setData(productsInCart)
           }
         }
       }
     } else {
-      if (url === "" && productsInCart.length) {
-        setUrl(
-          "https://e-commerce-website-backend-pi.vercel.app/createOrder/updateItems",
-        )
+      if (permission === "" && productsInCart.length) {
+        setPermission("allow")
         setData(productsInCart)
       }
     }
@@ -165,73 +207,95 @@ export default function CartPage() {
     createOrderInDatabase.item
 
   async function moveToWishlist(e) {
-    // To stop Event Bubbling
-    e.preventDefault()
-    e.stopPropagation()
+    try {
+      // To stop Event Bubbling
+      e.preventDefault()
+      e.stopPropagation()
 
-    const isAddedToWishlist = user.addToWishlistItems.filter(
-      (item) => item.id === Number(e.target.value),
-    )
-    if (!isAddedToWishlist.length) {
-      // Update user in Database
-      user.addToWishlistItems.push({ id: Number(e.target.value) })
-      await updateWishlistItemsInUser(user._id, user.addToWishlistItems)
+      const promises = []
 
-      // Update finalClothsData in memory
-      const item = finalClothsData.find(
-        (Product) => Product.id === Number(e.target.value),
+      const isAddedToWishlist = user.addToWishlistItems.filter(
+        (item) => item.id === Number(e.target.value),
       )
-      if (item) {
-        item.addToWishList = true
-      }
-
-      // Update createOrder in Database
-      const Product =
-        createOrderInDatabase &&
-        createOrderInDatabase.item.length &&
-        createOrderInDatabase.item.filter(
-          (product) => product.id === Number(e.target.value),
+      if (!isAddedToWishlist.length) {
+        // Update user in Database
+        user.addToWishlistItems.push({ id: Number(e.target.value) })
+        promises.push(
+          updateWishlistItemsInUser(
+            user._id,
+            user.addToWishlistItems,
+            undefined,
+            setIsError,
+          ),
         )
-      if (Product && Product.length) {
-        Product[0].addToWishList = true
+
+        // Update finalClothsData in memory
+        const item = finalClothsData.find(
+          (Product) => Product.id === Number(e.target.value),
+        )
+        if (item) {
+          item.addToWishList = true
+        }
+
+        // Update createOrder in Database
+        const Product =
+          createOrderInDatabase &&
+          createOrderInDatabase.item.length &&
+          createOrderInDatabase.item.filter(
+            (product) => product.id === Number(e.target.value),
+          )
+        if (Product && Product.length) {
+          Product[0].addToWishList = true
+        }
+        const createOrder = { products: createOrderInDatabase.item, userId }
+        Product &&
+          Product.length &&
+          (await fetchCreateOrderByUserIdAndUpdate(
+            userId,
+            createOrder,
+            undefined,
+            setIsError,
+          ))
+
+        const result = await Promise.all(promises)
+        let isAllPromisesFulfilled = true
+        result.forEach((res) => {
+          if (res === undefined) {
+            isAllPromisesFulfilled = false
+          }
+        })
+        const isAnyPromiseRejected = isAllPromisesFulfilled ? false : true
+        if (isAnyPromiseRejected) {
+          userId && (await syncUserAndCreateOrder(userId, setIsError))
+        } else {
+          // For interactivity
+          const btn = e.target
+          btn.innerHTML = '<i class="bi bi-check2"></i>'
+          btn.style.backgroundColor = "#05a058"
+          btn.style.color = "white"
+          setTimeout(() => {
+            btn.innerHTML = "Added To Wishlist"
+            btn.style.backgroundColor = ""
+            btn.style.color = ""
+          }, 1000)
+
+          // To update the variables present in this page
+          setUpdated(true)
+
+          toast("Product added to wishlist😊")
+        }
       }
-      Product &&
-        Product.length &&
-        (await updateAllItemsInCreateOrder(
-          "https://e-commerce-website-backend-pi.vercel.app/createOrder/updateItems",
-          createOrderInDatabase.item,
-        ))
-
-      // For interactivity
-      const btn = e.target
-      btn.innerHTML = '<i class="bi bi-check2"></i>'
-      btn.style.backgroundColor = "#05a058"
-      btn.style.color = "white"
-      setTimeout(() => {
-        btn.innerHTML = "Added To Wishlist"
-        btn.style.backgroundColor = ""
-        btn.style.color = ""
-      }, 1000)
-
-      // To update the variables present in this page
-      setUpdated(true)
-
-      toast("Product added to wishlist😊")
+    } catch (error) {
+      console.error(error)
+      setIsError(error.message)
     }
   }
 
   useEffect(() => {
-    async function fetchData() {
-      const createOrder = await fetchCreateOrder()
-      setCreateOrderInDatabase(createOrder)
-      const user = await fetchUserById(userId)
-      setUser(user)
-      if (isUpdated) {
-        setIsRemoveFromCart(false)
-        setUpdated(false)
-      }
+    if (isUpdated) {
+      setIsRemoveFromCart(false)
+      setUpdated(false)
     }
-    fetchData()
   }, [isUpdated])
 
   const totalOrder =
@@ -255,9 +319,13 @@ export default function CartPage() {
         ProductsInCart.length,
     )
 
+  if (isError) {
+    return <Error />
+  }
+
   return (
     <>
-      {userId && !user ? (
+      {loading || !user ? (
         <CartPageShimmer />
       ) : (
         <>
@@ -361,56 +429,70 @@ export default function CartPage() {
                                             height: "30px",
                                           }}
                                           onClick={async (e) => {
-                                            // To stop Event Bubbling
-                                            e.preventDefault()
-                                            e.stopPropagation()
+                                            try {
+                                              // To stop Event Bubbling
+                                              e.preventDefault()
+                                              e.stopPropagation()
 
-                                            let inputElementValue = Number(
-                                              e.target.nextElementSibling.value,
-                                            )
-                                            if (inputElementValue > 1) {
-                                              // Update the input element value
-                                              e.target.nextElementSibling.value =
-                                                --inputElementValue
-
-                                              // Update createOrder in Database
-                                              product.quantity = Number(
+                                              let inputElementValue = Number(
                                                 e.target.nextElementSibling
                                                   .value,
                                               )
-                                              await updateAllItemsInCreateOrder(
-                                                "https://e-commerce-website-backend-pi.vercel.app/createOrder/updateItems",
-                                                ProductsInCart,
-                                              )
+                                              if (inputElementValue > 1) {
+                                                // Update the input element value
+                                                e.target.nextElementSibling.value =
+                                                  --inputElementValue
 
-                                              // Update user in Database
-                                              const clothItem =
-                                                user.addToCartItems.find(
-                                                  (item) =>
-                                                    item.id === product.id,
+                                                // Update createOrder in Database
+                                                product.quantity = Number(
+                                                  e.target.nextElementSibling
+                                                    .value,
                                                 )
-                                              clothItem.quantity = Number(
-                                                e.target.nextElementSibling
-                                                  .value,
-                                              )
-                                              await updateCartItemsInUser(
-                                                user._id,
-                                                user.addToCartItems,
-                                              )
-
-                                              // Update finalClothsData in memory
-                                              const cloth =
-                                                finalClothsData.find(
-                                                  (cloth) =>
-                                                    cloth.id === product.id,
+                                                const createOrder = {
+                                                  products: ProductsInCart,
+                                                  userId,
+                                                }
+                                                await fetchCreateOrderByUserIdAndUpdate(
+                                                  userId,
+                                                  createOrder,
+                                                  undefined,
+                                                  setIsError,
                                                 )
-                                              cloth.quantity = Number(
-                                                e.target.nextElementSibling
-                                                  .value,
-                                              )
 
-                                              // To update the variables present in this page
-                                              setUpdated(true)
+                                                // Update user in Database
+                                                const clothItem =
+                                                  user.addToCartItems.find(
+                                                    (item) =>
+                                                      item.id === product.id,
+                                                  )
+                                                clothItem.quantity = Number(
+                                                  e.target.nextElementSibling
+                                                    .value,
+                                                )
+                                                await updateCartItemsInUser(
+                                                  user._id,
+                                                  user.addToCartItems,
+                                                  undefined,
+                                                  setIsError,
+                                                )
+
+                                                // Update finalClothsData in memory
+                                                const cloth =
+                                                  finalClothsData.find(
+                                                    (cloth) =>
+                                                      cloth.id === product.id,
+                                                  )
+                                                cloth.quantity = Number(
+                                                  e.target.nextElementSibling
+                                                    .value,
+                                                )
+
+                                                // To update the variables present in this page
+                                                setUpdated(true)
+                                              }
+                                            } catch (error) {
+                                              console.error(error)
+                                              setIsError(error.message)
                                             }
                                           }}
                                         >
@@ -441,55 +523,69 @@ export default function CartPage() {
                                             height: "30px",
                                           }}
                                           onClick={async (e) => {
-                                            // To stop Event Bubbling
-                                            e.preventDefault()
-                                            e.stopPropagation()
+                                            try {
+                                              // To stop Event Bubbling
+                                              e.preventDefault()
+                                              e.stopPropagation()
 
-                                            // Update the input element value
-                                            let inputElementValue = Number(
-                                              e.target.previousElementSibling
-                                                .value,
-                                            )
-                                            e.target.previousElementSibling.value =
-                                              ++inputElementValue
-
-                                            // Update createOrder in Database
-                                            product.quantity = Number(
-                                              e.target.previousElementSibling
-                                                .value,
-                                            )
-                                            await updateAllItemsInCreateOrder(
-                                              "https://e-commerce-website-backend-pi.vercel.app/createOrder/updateItems",
-                                              ProductsInCart,
-                                            )
-
-                                            // Update user in Database
-                                            const clothItem =
-                                              user.addToCartItems.find(
-                                                (item) =>
-                                                  item.id === product.id,
+                                              // Update the input element value
+                                              let inputElementValue = Number(
+                                                e.target.previousElementSibling
+                                                  .value,
                                               )
-                                            clothItem.quantity = Number(
-                                              e.target.previousElementSibling
-                                                .value,
-                                            )
-                                            await updateCartItemsInUser(
-                                              user._id,
-                                              user.addToCartItems,
-                                            )
+                                              e.target.previousElementSibling.value =
+                                                ++inputElementValue
 
-                                            // Update finalClothsData in memory
-                                            const cloth = finalClothsData.find(
-                                              (cloth) =>
-                                                cloth.id === product.id,
-                                            )
-                                            cloth.quantity = Number(
-                                              e.target.previousElementSibling
-                                                .value,
-                                            )
+                                              // Update createOrder in Database
+                                              product.quantity = Number(
+                                                e.target.previousElementSibling
+                                                  .value,
+                                              )
+                                              const createOrder = {
+                                                products: ProductsInCart,
+                                                userId,
+                                              }
+                                              await fetchCreateOrderByUserIdAndUpdate(
+                                                userId,
+                                                createOrder,
+                                                undefined,
+                                                setIsError,
+                                              )
 
-                                            // To update the variables present in this page
-                                            setUpdated(true)
+                                              // Update user in Database
+                                              const clothItem =
+                                                user.addToCartItems.find(
+                                                  (item) =>
+                                                    item.id === product.id,
+                                                )
+                                              clothItem.quantity = Number(
+                                                e.target.previousElementSibling
+                                                  .value,
+                                              )
+                                              await updateCartItemsInUser(
+                                                user._id,
+                                                user.addToCartItems,
+                                                undefined,
+                                                setIsError,
+                                              )
+
+                                              // Update finalClothsData in memory
+                                              const cloth =
+                                                finalClothsData.find(
+                                                  (cloth) =>
+                                                    cloth.id === product.id,
+                                                )
+                                              cloth.quantity = Number(
+                                                e.target.previousElementSibling
+                                                  .value,
+                                              )
+
+                                              // To update the variables present in this page
+                                              setUpdated(true)
+                                            } catch (error) {
+                                              console.error(error)
+                                              setIsError(error.message)
+                                            }
                                           }}
                                         >
                                           {" "}
@@ -519,65 +615,79 @@ export default function CartPage() {
                                                 : "",
                                           }}
                                           onClick={async (e) => {
-                                            // To stop Event Bubbling
-                                            e.preventDefault()
-                                            e.stopPropagation()
+                                            try {
+                                              // To stop Event Bubbling
+                                              e.preventDefault()
+                                              e.stopPropagation()
 
-                                            // Update createOrder in Database
-                                            product.size = "S"
-                                            await updateAllItemsInCreateOrder(
-                                              "https://e-commerce-website-backend-pi.vercel.app/createOrder/updateItems",
-                                              ProductsInCart,
-                                            )
-
-                                            // Update finalClothsData in memory
-                                            const cloth = finalClothsData.find(
-                                              (cloth) =>
-                                                cloth.id === product.id,
-                                            )
-                                            cloth.size = "S"
-
-                                            // Update user in Database
-                                            const clothItem =
-                                              user.addToCartItems.find(
-                                                (item) =>
-                                                  item.id === product.id,
+                                              // Update createOrder in Database
+                                              product.size = "S"
+                                              const createOrder = {
+                                                products: ProductsInCart,
+                                                userId,
+                                              }
+                                              await fetchCreateOrderByUserIdAndUpdate(
+                                                userId,
+                                                createOrder,
+                                                undefined,
+                                                setIsError,
                                               )
-                                            clothItem.size = "S"
-                                            await updateCartItemsInUser(
-                                              user._id,
-                                              user.addToCartItems,
-                                            )
 
-                                            // To update the variables present in this page
-                                            setUpdated(true)
+                                              // Update finalClothsData in memory
+                                              const cloth =
+                                                finalClothsData.find(
+                                                  (cloth) =>
+                                                    cloth.id === product.id,
+                                                )
+                                              cloth.size = "S"
 
-                                            // For interactivity
-                                            const btn = e.target
-                                            btn.innerHTML =
-                                              '<i class="bi bi-check2"></i>'
-                                            setTimeout(() => {
-                                              btn.innerHTML = "S"
-                                              btn.style.backgroundColor =
-                                                "green"
-                                              btn.style.color = "white"
-                                              const parentElement =
-                                                btn.parentElement
-                                              const siblings =
-                                                parentElement.children
-                                              const arrayOfSiblings = [
-                                                ...siblings,
-                                              ]
-                                              arrayOfSiblings.forEach(
-                                                (sibling) => {
-                                                  if (sibling !== btn) {
-                                                    sibling.style.backgroundColor =
-                                                      ""
-                                                    sibling.style.color = ""
-                                                  }
-                                                },
+                                              // Update user in Database
+                                              const clothItem =
+                                                user.addToCartItems.find(
+                                                  (item) =>
+                                                    item.id === product.id,
+                                                )
+                                              clothItem.size = "S"
+                                              await updateCartItemsInUser(
+                                                user._id,
+                                                user.addToCartItems,
+                                                undefined,
+                                                setIsError,
                                               )
-                                            }, 500)
+
+                                              // To update the variables present in this page
+                                              setUpdated(true)
+
+                                              // For interactivity
+                                              const btn = e.target
+                                              btn.innerHTML =
+                                                '<i class="bi bi-check2"></i>'
+                                              setTimeout(() => {
+                                                btn.innerHTML = "S"
+                                                btn.style.backgroundColor =
+                                                  "green"
+                                                btn.style.color = "white"
+                                                const parentElement =
+                                                  btn.parentElement
+                                                const siblings =
+                                                  parentElement.children
+                                                const arrayOfSiblings = [
+                                                  ...siblings,
+                                                ]
+                                                arrayOfSiblings.forEach(
+                                                  (sibling) => {
+                                                    if (sibling !== btn) {
+                                                      sibling.style.backgroundColor =
+                                                        ""
+                                                      sibling.style.color = ""
+                                                    }
+                                                  },
+                                                )
+                                              }, 500)
+                                            } catch (error) {
+                                              console.error(error)
+                                              setIsError(error.message)
+                                            }
                                           }}
                                         >
                                           S
@@ -595,65 +705,79 @@ export default function CartPage() {
                                                 : "",
                                           }}
                                           onClick={async (e) => {
-                                            // To stop Event Bubbling
-                                            e.preventDefault()
-                                            e.stopPropagation()
+                                            try {
+                                              // To stop Event Bubbling
+                                              e.preventDefault()
+                                              e.stopPropagation()
 
-                                            // Update createOrder in Database
-                                            product.size = "M"
-                                            await updateAllItemsInCreateOrder(
-                                              "https://e-commerce-website-backend-pi.vercel.app/createOrder/updateItems",
-                                              ProductsInCart,
-                                            )
-
-                                            // Update finalClothsData in memory
-                                            const cloth = finalClothsData.find(
-                                              (cloth) =>
-                                                cloth.id === product.id,
-                                            )
-                                            cloth.size = "M"
-
-                                            // Update user in Database
-                                            const clothItem =
-                                              user.addToCartItems.find(
-                                                (item) =>
-                                                  item.id === product.id,
+                                              // Update createOrder in Database
+                                              product.size = "M"
+                                              const createOrder = {
+                                                products: ProductsInCart,
+                                                userId,
+                                              }
+                                              await fetchCreateOrderByUserIdAndUpdate(
+                                                userId,
+                                                createOrder,
+                                                undefined,
+                                                setIsError,
                                               )
-                                            clothItem.size = "M"
-                                            await updateCartItemsInUser(
-                                              user._id,
-                                              user.addToCartItems,
-                                            )
 
-                                            // To update the variables present in this page
-                                            setUpdated(true)
+                                              // Update finalClothsData in memory
+                                              const cloth =
+                                                finalClothsData.find(
+                                                  (cloth) =>
+                                                    cloth.id === product.id,
+                                                )
+                                              cloth.size = "M"
 
-                                            // For interactivity
-                                            const btn = e.target
-                                            btn.innerHTML =
-                                              '<i class="bi bi-check2"></i>'
-                                            setTimeout(() => {
-                                              btn.innerHTML = "M"
-                                              btn.style.backgroundColor =
-                                                "green"
-                                              btn.style.color = "white"
-                                              const parentElement =
-                                                btn.parentElement
-                                              const siblings =
-                                                parentElement.children
-                                              const arrayOfSiblings = [
-                                                ...siblings,
-                                              ]
-                                              arrayOfSiblings.forEach(
-                                                (sibling) => {
-                                                  if (sibling !== btn) {
-                                                    sibling.style.backgroundColor =
-                                                      ""
-                                                    sibling.style.color = ""
-                                                  }
-                                                },
+                                              // Update user in Database
+                                              const clothItem =
+                                                user.addToCartItems.find(
+                                                  (item) =>
+                                                    item.id === product.id,
+                                                )
+                                              clothItem.size = "M"
+                                              await updateCartItemsInUser(
+                                                user._id,
+                                                user.addToCartItems,
+                                                undefined,
+                                                setIsError,
                                               )
-                                            }, 500)
+
+                                              // To update the variables present in this page
+                                              setUpdated(true)
+
+                                              // For interactivity
+                                              const btn = e.target
+                                              btn.innerHTML =
+                                                '<i class="bi bi-check2"></i>'
+                                              setTimeout(() => {
+                                                btn.innerHTML = "M"
+                                                btn.style.backgroundColor =
+                                                  "green"
+                                                btn.style.color = "white"
+                                                const parentElement =
+                                                  btn.parentElement
+                                                const siblings =
+                                                  parentElement.children
+                                                const arrayOfSiblings = [
+                                                  ...siblings,
+                                                ]
+                                                arrayOfSiblings.forEach(
+                                                  (sibling) => {
+                                                    if (sibling !== btn) {
+                                                      sibling.style.backgroundColor =
+                                                        ""
+                                                      sibling.style.color = ""
+                                                    }
+                                                  },
+                                                )
+                                              }, 500)
+                                            } catch (error) {
+                                              console.error(error)
+                                              setIsError(error.message)
+                                            }
                                           }}
                                         >
                                           M
@@ -671,65 +795,79 @@ export default function CartPage() {
                                                 : "",
                                           }}
                                           onClick={async (e) => {
-                                            // To stop Event Bubbling
-                                            e.preventDefault()
-                                            e.stopPropagation()
+                                            try {
+                                              // To stop Event Bubbling
+                                              e.preventDefault()
+                                              e.stopPropagation()
 
-                                            // Update createOrder in Database
-                                            product.size = "L"
-                                            await updateAllItemsInCreateOrder(
-                                              "https://e-commerce-website-backend-pi.vercel.app/createOrder/updateItems",
-                                              ProductsInCart,
-                                            )
-
-                                            // Update finalClothsData in memory
-                                            const cloth = finalClothsData.find(
-                                              (cloth) =>
-                                                cloth.id === product.id,
-                                            )
-                                            cloth.size = "L"
-
-                                            // Update user in Database
-                                            const clothItem =
-                                              user.addToCartItems.find(
-                                                (item) =>
-                                                  item.id === product.id,
+                                              // Update createOrder in Database
+                                              product.size = "L"
+                                              const createOrder = {
+                                                products: ProductsInCart,
+                                                userId,
+                                              }
+                                              await fetchCreateOrderByUserIdAndUpdate(
+                                                userId,
+                                                createOrder,
+                                                undefined,
+                                                setIsError,
                                               )
-                                            clothItem.size = "L"
-                                            await updateCartItemsInUser(
-                                              user._id,
-                                              user.addToCartItems,
-                                            )
 
-                                            // To update the variables present in this page
-                                            setUpdated(true)
+                                              // Update finalClothsData in memory
+                                              const cloth =
+                                                finalClothsData.find(
+                                                  (cloth) =>
+                                                    cloth.id === product.id,
+                                                )
+                                              cloth.size = "L"
 
-                                            // For interactivity
-                                            const btn = e.target
-                                            btn.innerHTML =
-                                              '<i class="bi bi-check2"></i>'
-                                            setTimeout(() => {
-                                              btn.innerHTML = "L"
-                                              btn.style.backgroundColor =
-                                                "green"
-                                              btn.style.color = "white"
-                                              const parentElement =
-                                                btn.parentElement
-                                              const siblings =
-                                                parentElement.children
-                                              const arrayOfSiblings = [
-                                                ...siblings,
-                                              ]
-                                              arrayOfSiblings.forEach(
-                                                (sibling) => {
-                                                  if (sibling !== btn) {
-                                                    sibling.style.backgroundColor =
-                                                      ""
-                                                    sibling.style.color = ""
-                                                  }
-                                                },
+                                              // Update user in Database
+                                              const clothItem =
+                                                user.addToCartItems.find(
+                                                  (item) =>
+                                                    item.id === product.id,
+                                                )
+                                              clothItem.size = "L"
+                                              await updateCartItemsInUser(
+                                                user._id,
+                                                user.addToCartItems,
+                                                undefined,
+                                                setIsError,
                                               )
-                                            }, 500)
+
+                                              // To update the variables present in this page
+                                              setUpdated(true)
+
+                                              // For interactivity
+                                              const btn = e.target
+                                              btn.innerHTML =
+                                                '<i class="bi bi-check2"></i>'
+                                              setTimeout(() => {
+                                                btn.innerHTML = "L"
+                                                btn.style.backgroundColor =
+                                                  "green"
+                                                btn.style.color = "white"
+                                                const parentElement =
+                                                  btn.parentElement
+                                                const siblings =
+                                                  parentElement.children
+                                                const arrayOfSiblings = [
+                                                  ...siblings,
+                                                ]
+                                                arrayOfSiblings.forEach(
+                                                  (sibling) => {
+                                                    if (sibling !== btn) {
+                                                      sibling.style.backgroundColor =
+                                                        ""
+                                                      sibling.style.color = ""
+                                                    }
+                                                  },
+                                                )
+                                              }, 500)
+                                            } catch (error) {
+                                              console.error(error)
+                                              setIsError(error.message)
+                                            }
                                           }}
                                         >
                                           L
@@ -747,65 +885,79 @@ export default function CartPage() {
                                                 : "",
                                           }}
                                           onClick={async (e) => {
-                                            // To stop Event Bubbling
-                                            e.preventDefault()
-                                            e.stopPropagation()
+                                            try {
+                                              // To stop Event Bubbling
+                                              e.preventDefault()
+                                              e.stopPropagation()
 
-                                            // Update createOrder in Database
-                                            product.size = "XL"
-                                            await updateAllItemsInCreateOrder(
-                                              "https://e-commerce-website-backend-pi.vercel.app/createOrder/updateItems",
-                                              ProductsInCart,
-                                            )
-
-                                            // Update finalClothsData in memory
-                                            const cloth = finalClothsData.find(
-                                              (cloth) =>
-                                                cloth.id === product.id,
-                                            )
-                                            cloth.size = "XL"
-
-                                            // Update user in Database
-                                            const clothItem =
-                                              user.addToCartItems.find(
-                                                (item) =>
-                                                  item.id === product.id,
+                                              // Update createOrder in Database
+                                              product.size = "XL"
+                                              const createOrder = {
+                                                products: ProductsInCart,
+                                                userId,
+                                              }
+                                              await fetchCreateOrderByUserIdAndUpdate(
+                                                userId,
+                                                createOrder,
+                                                undefined,
+                                                setIsError,
                                               )
-                                            clothItem.size = "XL"
-                                            await updateCartItemsInUser(
-                                              user._id,
-                                              user.addToCartItems,
-                                            )
 
-                                            // To update the variables present in this page
-                                            setUpdated(true)
+                                              // Update finalClothsData in memory
+                                              const cloth =
+                                                finalClothsData.find(
+                                                  (cloth) =>
+                                                    cloth.id === product.id,
+                                                )
+                                              cloth.size = "XL"
 
-                                            // For interactivity
-                                            const btn = e.target
-                                            btn.innerHTML =
-                                              '<i class="bi bi-check2"></i>'
-                                            setTimeout(() => {
-                                              btn.innerHTML = "XL"
-                                              btn.style.backgroundColor =
-                                                "green"
-                                              btn.style.color = "white"
-                                              const parentElement =
-                                                btn.parentElement
-                                              const siblings =
-                                                parentElement.children
-                                              const arrayOfSiblings = [
-                                                ...siblings,
-                                              ]
-                                              arrayOfSiblings.forEach(
-                                                (sibling) => {
-                                                  if (sibling !== btn) {
-                                                    sibling.style.backgroundColor =
-                                                      ""
-                                                    sibling.style.color = ""
-                                                  }
-                                                },
+                                              // Update user in Database
+                                              const clothItem =
+                                                user.addToCartItems.find(
+                                                  (item) =>
+                                                    item.id === product.id,
+                                                )
+                                              clothItem.size = "XL"
+                                              await updateCartItemsInUser(
+                                                user._id,
+                                                user.addToCartItems,
+                                                undefined,
+                                                setIsError,
                                               )
-                                            }, 500)
+
+                                              // To update the variables present in this page
+                                              setUpdated(true)
+
+                                              // For interactivity
+                                              const btn = e.target
+                                              btn.innerHTML =
+                                                '<i class="bi bi-check2"></i>'
+                                              setTimeout(() => {
+                                                btn.innerHTML = "XL"
+                                                btn.style.backgroundColor =
+                                                  "green"
+                                                btn.style.color = "white"
+                                                const parentElement =
+                                                  btn.parentElement
+                                                const siblings =
+                                                  parentElement.children
+                                                const arrayOfSiblings = [
+                                                  ...siblings,
+                                                ]
+                                                arrayOfSiblings.forEach(
+                                                  (sibling) => {
+                                                    if (sibling !== btn) {
+                                                      sibling.style.backgroundColor =
+                                                        ""
+                                                      sibling.style.color = ""
+                                                    }
+                                                  },
+                                                )
+                                              }, 500)
+                                            } catch (error) {
+                                              console.error(error)
+                                              setIsError(error.message)
+                                            }
                                           }}
                                         >
                                           XL
@@ -823,65 +975,79 @@ export default function CartPage() {
                                                 : "",
                                           }}
                                           onClick={async (e) => {
-                                            // To stop Event Bubbling
-                                            e.preventDefault()
-                                            e.stopPropagation()
+                                            try {
+                                              // To stop Event Bubbling
+                                              e.preventDefault()
+                                              e.stopPropagation()
 
-                                            // Update createOrder in Database
-                                            product.size = "XXL"
-                                            await updateAllItemsInCreateOrder(
-                                              "https://e-commerce-website-backend-pi.vercel.app/createOrder/updateItems",
-                                              ProductsInCart,
-                                            )
-
-                                            // Update finalClothsData in memory
-                                            const cloth = finalClothsData.find(
-                                              (cloth) =>
-                                                cloth.id === product.id,
-                                            )
-                                            cloth.size = "XXL"
-
-                                            // Update user in Database
-                                            const clothItem =
-                                              user.addToCartItems.find(
-                                                (item) =>
-                                                  item.id === product.id,
+                                              // Update createOrder in Database
+                                              product.size = "XXL"
+                                              const createOrder = {
+                                                products: ProductsInCart,
+                                                userId,
+                                              }
+                                              await fetchCreateOrderByUserIdAndUpdate(
+                                                userId,
+                                                createOrder,
+                                                undefined,
+                                                setIsError,
                                               )
-                                            clothItem.size = "XXL"
-                                            await updateCartItemsInUser(
-                                              user._id,
-                                              user.addToCartItems,
-                                            )
 
-                                            // To update the variables present in this page
-                                            setUpdated(true)
+                                              // Update finalClothsData in memory
+                                              const cloth =
+                                                finalClothsData.find(
+                                                  (cloth) =>
+                                                    cloth.id === product.id,
+                                                )
+                                              cloth.size = "XXL"
 
-                                            // For interactivity
-                                            const btn = e.target
-                                            btn.innerHTML =
-                                              '<i class="bi bi-check2"></i>'
-                                            setTimeout(() => {
-                                              btn.innerHTML = "XXL"
-                                              btn.style.backgroundColor =
-                                                "green"
-                                              btn.style.color = "white"
-                                              const parentElement =
-                                                btn.parentElement
-                                              const siblings =
-                                                parentElement.children
-                                              const arrayOfSiblings = [
-                                                ...siblings,
-                                              ]
-                                              arrayOfSiblings.forEach(
-                                                (sibling) => {
-                                                  if (sibling !== btn) {
-                                                    sibling.style.backgroundColor =
-                                                      ""
-                                                    sibling.style.color = ""
-                                                  }
-                                                },
+                                              // Update user in Database
+                                              const clothItem =
+                                                user.addToCartItems.find(
+                                                  (item) =>
+                                                    item.id === product.id,
+                                                )
+                                              clothItem.size = "XXL"
+                                              await updateCartItemsInUser(
+                                                user._id,
+                                                user.addToCartItems,
+                                                undefined,
+                                                setIsError,
                                               )
-                                            }, 500)
+
+                                              // To update the variables present in this page
+                                              setUpdated(true)
+
+                                              // For interactivity
+                                              const btn = e.target
+                                              btn.innerHTML =
+                                                '<i class="bi bi-check2"></i>'
+                                              setTimeout(() => {
+                                                btn.innerHTML = "XXL"
+                                                btn.style.backgroundColor =
+                                                  "green"
+                                                btn.style.color = "white"
+                                                const parentElement =
+                                                  btn.parentElement
+                                                const siblings =
+                                                  parentElement.children
+                                                const arrayOfSiblings = [
+                                                  ...siblings,
+                                                ]
+                                                arrayOfSiblings.forEach(
+                                                  (sibling) => {
+                                                    if (sibling !== btn) {
+                                                      sibling.style.backgroundColor =
+                                                        ""
+                                                      sibling.style.color = ""
+                                                    }
+                                                  },
+                                                )
+                                              }, 500)
+                                            } catch (error) {
+                                              console.error(error)
+                                              setIsError(error.message)
+                                            }
                                           }}
                                         >
                                           XXL
@@ -894,45 +1060,58 @@ export default function CartPage() {
                                       className="btn btn-secondary w-100 my-2"
                                       value={product.id}
                                       onClick={async (e) => {
-                                        // To stop Event Bubbling
-                                        e.preventDefault()
-                                        e.stopPropagation()
+                                        try {
+                                          // To stop Event Bubbling
+                                          e.preventDefault()
+                                          e.stopPropagation()
 
-                                        // Update finalClothsData in memory
-                                        const item = finalClothsData.find(
-                                          (Product) =>
-                                            Product.id === product.id,
-                                        )
-                                        if (item) {
-                                          item.addToCart = false
-                                          delete item.quantity
-                                          delete item.size
+                                          // Update finalClothsData in memory
+                                          const item = finalClothsData.find(
+                                            (Product) =>
+                                              Product.id === product.id,
+                                          )
+                                          if (item) {
+                                            item.addToCart = false
+                                            delete item.quantity
+                                            delete item.size
+                                          }
+
+                                          // Update user in Database
+                                          const remainingCartItems =
+                                            user.addToCartItems.filter(
+                                              (item) => item.id !== product.id,
+                                            )
+                                          await updateCartItemsInUser(
+                                            user._id,
+                                            remainingCartItems,
+                                            undefined,
+                                            setIsError,
+                                          )
+
+                                          // Update createOrder
+                                          const remainingCreateOrderItems =
+                                            createOrderInDatabase.item.filter(
+                                              (item) => item.id !== product.id,
+                                            )
+                                          const createOrder = {
+                                            products: remainingCreateOrderItems,
+                                            userId,
+                                          }
+                                          await fetchCreateOrderByUserIdAndUpdate(
+                                            userId,
+                                            createOrder,
+                                            undefined,
+                                            setIsError,
+                                          )
+
+                                          setIsRemoveFromCart(true)
+                                          setUpdated(true)
+
+                                          toast("Product remove from cart")
+                                        } catch (error) {
+                                          console.error(error)
+                                          setIsError(error.message)
                                         }
-
-                                        // Update user in Database
-                                        const remainingCartItems =
-                                          user.addToCartItems.filter(
-                                            (item) => item.id !== product.id,
-                                          )
-                                        await updateCartItemsInUser(
-                                          user._id,
-                                          remainingCartItems,
-                                        )
-
-                                        // Update createOrder
-                                        const remainingCreateOrderItems =
-                                          createOrderInDatabase.item.filter(
-                                            (item) => item.id !== product.id,
-                                          )
-                                        await updateAllItemsInCreateOrder(
-                                          "https://e-commerce-website-backend-pi.vercel.app/createOrder/updateItems",
-                                          remainingCreateOrderItems,
-                                        )
-
-                                        setIsRemoveFromCart(true)
-                                        setUpdated(true)
-
-                                        toast("Product remove from cart")
                                       }}
                                     >
                                       Remove From Cart
@@ -989,14 +1168,25 @@ export default function CartPage() {
                     <button
                       className="btn btn-warning w-100 my-2"
                       onClick={async (e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        await updateAllItemsInCreateOrder(
-                          "https://e-commerce-website-backend-pi.vercel.app/createOrder/updateItems",
-                          createOrderInDatabase.item,
-                        )
-                        setConfirmOrder(true)
-                        setUpdated(true)
+                        try {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          const createOrder = {
+                            products: createOrderInDatabase.item,
+                            userId,
+                          }
+                          await fetchCreateOrderByUserIdAndUpdate(
+                            userId,
+                            createOrder,
+                            undefined,
+                            setIsError,
+                          )
+                          setConfirmOrder(true)
+                          setUpdated(true)
+                        } catch (error) {
+                          console.error(error)
+                          setIsError(error.message)
+                        }
                       }}
                     >
                       Proceed to Order

@@ -3,20 +3,21 @@ import { Link } from "react-router-dom"
 import Header from "../components/Header"
 import RatingBar from "../components/RatingBar"
 import { useState } from "react"
-import SearchInPage from "../components/SearchInPage"
 import { toast } from "react-toastify"
 import { useEffect } from "react"
 import {
   fetchUserById,
-  fetchAllOrders,
+  fetchAllOrdersByUserId,
   deleteOrderById,
-} from "../components/FetchRequests"
+} from "../services/FetchRequests"
 import YourOrdersShimmer from "../shimmers/YourOrders.shimmer"
 import Footer from "../components/Footer"
+import GetUserId from "../services/GetClothsData"
+import Error from "../components/Error"
 
 export default function YourOrders() {
-  const [search, setSearch] = useState("")
-  console.log(search)
+  const [loading, setLoading] = useState(false)
+  const [isError, setIsError] = useState("")
 
   /* isClicked useState is used to show user's selected address 
   while user click on user's name on your orders page */
@@ -29,25 +30,37 @@ export default function YourOrders() {
   const [allOrders, setAllOrders] = useState([])
   const orders = allOrders || []
 
-  const userId = localStorage.getItem("userId")
+  const userId = GetUserId()
   const [user, setUser] = useState(null)
 
-  useEffect(() => {
-    async function fetchData() {
-      const user = await fetchUserById(userId)
-      setUser(user)
-      const orders = await fetchAllOrders()
-      setAllOrders(orders)
+  async function fetchData(setLoading, setIsError) {
+    try {
+      setLoading(true)
+
+      await fetchUserById(userId, setUser, setIsError)
+      await fetchAllOrdersByUserId(userId, setAllOrders, setIsError)
       if (isUpdated) {
         setUpdated(false)
       }
+    } catch (error) {
+      console.error(error)
+      setIsError(error.message)
+    } finally {
+      setLoading(false)
     }
-    fetchData()
+  }
+
+  useEffect(() => {
+    fetchData(setLoading, setIsError)
   }, [isUpdated])
+
+  if (isError) {
+    return <Error />
+  }
 
   return (
     <>
-      {!orders ? (
+      {loading || !orders ? (
         <YourOrdersShimmer />
       ) : (
         <>
@@ -55,14 +68,8 @@ export default function YourOrders() {
             position="static"
             top="auto"
             zIndex="auto"
-            setSearch={setSearch}
             isSearchBarNeeded={false}
             userDetails={user}
-          />
-          <SearchInPage
-            margin="ms-3"
-            setSearch={setSearch}
-            isSearchBarNeeded={false}
           />
           <main className="container mt-3">
             <h1>Your Orders</h1>
@@ -276,10 +283,18 @@ export default function YourOrders() {
                           <button
                             className="btn btn-outline-danger rounded-pill"
                             onClick={async () => {
-                              const result = await deleteOrderById(order.id)
-                              if (result) {
-                                setUpdated(true)
-                                toast("Order deleted successfully")
+                              try {
+                                const result = await deleteOrderById(
+                                  order.id,
+                                  setIsError,
+                                )
+                                if (result) {
+                                  setUpdated(true)
+                                  toast("Order deleted successfully")
+                                }
+                              } catch (error) {
+                                console.error(error)
+                                setIsError(error.message)
                               }
                             }}
                           >

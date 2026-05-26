@@ -6,26 +6,26 @@ import Card from "../assets/images/card.png"
 import { useState } from "react"
 import Cross from "../assets/images/cross.png"
 import RatingBar from "../components/RatingBar"
-import SearchInPage from "../components/SearchInPage"
-import GetClothsData from "../components/GetClothsData"
 import { toast } from "react-toastify"
 import { useEffect } from "react"
 import {
-  fetchCreateOrder,
-  updateAllItemsInCreateOrder,
-  deleteManyItemsInCreateOrder,
+  fetchCreateOrderByUserId,
+  fetchCreateOrderByUserIdAndUpdate,
   fetchUserById,
   updateCartItemsInUser,
-  fetchAllOrders,
+  fetchAllOrdersByUserId,
   saveNewOrder,
-} from "../components/FetchRequests.js"
+  fetchCreateOrderByUserIdAndDelete,
+  fetchClothById,
+} from "../services/FetchRequests.js"
 import PaymentMethodShimmer from "../shimmers/PaymentMethod.shimmer.jsx"
 import Footer from "../components/Footer.jsx"
+import GetUserId from "../services/GetClothsData.js"
+import Error from "../components/Error.jsx"
 
 export default function PaymentMethods() {
-  const { clothsData, setClothsData } = GetClothsData()
-  const [search, setSearch] = useState("")
-  console.log(search)
+  const [loading, setLoading] = useState(false)
+  const [isError, setIsError] = useState("")
 
   /* isCard useState is used only to set background color of card option if user will select 
   card option for payment */
@@ -54,7 +54,8 @@ export default function PaymentMethods() {
   to update the variables present on this page */
   const [updated, setUpdated] = useState(false)
 
-  const userId = localStorage.getItem("userId")
+  const userId = GetUserId()
+
   const [user, setUser] = useState(null)
 
   const address =
@@ -67,9 +68,11 @@ export default function PaymentMethods() {
   const [isPaymentMethodSelected, selectPaymentMethod] = useState(false)
 
   const [CreateOrderInDatabase, setCreateOrderInDatabase] = useState(null)
+
   const uniqueCreateOrderInDatabase =
     CreateOrderInDatabase &&
-    CreateOrderInDatabase.reduce((acc, item) => {
+    CreateOrderInDatabase.length &&
+    CreateOrderInDatabase[0].products.reduce((acc, item) => {
       if (!acc.length) {
         acc.push(item)
       } else {
@@ -82,9 +85,15 @@ export default function PaymentMethods() {
     }, [])
   const createOrderInDatabase = { item: uniqueCreateOrderInDatabase }
 
-  async function updateAllItems(url, data) {
+  async function updateAllItems(data) {
     try {
-      await updateAllItemsInCreateOrder(url, data)
+      const createOrder = { products: data, userId }
+      await fetchCreateOrderByUserIdAndUpdate(
+        userId,
+        createOrder,
+        undefined,
+        setIsError,
+      )
       setUpdated(true)
     } catch (error) {
       throw error
@@ -93,8 +102,13 @@ export default function PaymentMethods() {
 
   async function removeAllItemsFromCreateOrder() {
     try {
-      await deleteManyItemsInCreateOrder()
+      const result = await fetchCreateOrderByUserIdAndDelete(
+        userId,
+        undefined,
+        setIsError,
+      )
       setUpdated(true)
+      return result
     } catch (error) {
       throw error
     }
@@ -102,14 +116,14 @@ export default function PaymentMethods() {
 
   async function updateCartItems(id, items) {
     try {
-      await updateCartItemsInUser(id, items)
+      await updateCartItemsInUser(id, items, undefined, setIsError)
       setUpdated(true)
     } catch (error) {
       throw error
     }
   }
 
-  const [products, setProducts] = useState(
+  const [Products, setProducts] = useState(
     createOrderInDatabase && createOrderInDatabase.item
       ? createOrderInDatabase.item
       : [],
@@ -119,7 +133,7 @@ export default function PaymentMethods() {
 
   const [coupon, setCoupon] = useState("")
 
-  const totalOrder = products.reduce(
+  const totalOrder = Products.reduce(
     (acc, curr) =>
       acc +
       (curr.price -
@@ -132,65 +146,79 @@ export default function PaymentMethods() {
   )
 
   const DeliveryCharge = Math.round(
-    products.reduce((acc, curr) => acc + curr.deliveryCharge, 0) /
-      products.length,
+    Products.reduce((acc, curr) => acc + curr.deliveryCharge, 0) /
+      Products.length,
   )
 
   const deliveryCharge = Math.round(
-    products.reduce(
+    Products.reduce(
       (acc, curr) => acc + (curr.freeDelivery ? 0 : curr.deliveryCharge),
       0,
-    ) / products.length,
+    ) / Products.length,
   )
 
   const freeDelivery = Math.round(
-    products.reduce(
+    Products.reduce(
       (acc, curr) => acc + (curr.freeDelivery ? curr.deliveryCharge : 0),
       0,
-    ) / products.length,
+    ) / Products.length,
   )
 
   const totalPrice = totalOrder + deliveryCharge + (isCashOnDelivery ? 10 : 0)
 
   async function placeOrder() {
-    const order = orders[orders.length - 1]
+    try {
+      const order = orders[orders.length - 1]
 
-    if (coupon === "HAPPYDIWALI") {
-      order.sale = "10%"
-    }
-
-    if (freeDelivery) {
-      order.freeDelivery = `₹${freeDelivery}`
-    }
-
-    order.totalPrice = Math.round(
-      totalPrice - (coupon === "HAPPYDIWALI" ? totalOrder / 10 : 0),
-    )
-
-    await saveNewOrder(order)
-
-    await removeAllItemsFromCreateOrder()
-
-    const productsArray = order.item
-    productsArray.forEach(async (product) => {
-      if (product.addToCart) {
-        user.addToCartItems = user.addToCartItems.filter(
-          (item) => item.id !== product.id,
-        )
-        const itemInClothsData = clothsData.find(
-          (item) => item.id === product.id,
-        )
-        delete itemInClothsData.addToCart
-        delete itemInClothsData.quantity
-        delete itemInClothsData.size
+      if (coupon === "HAPPYDIWALI") {
+        order.sale = "10%"
       }
-    })
 
-    await updateCartItems(user._id, user.addToCartItems)
+      if (freeDelivery) {
+        order.freeDelivery = `₹${freeDelivery}`
+      }
 
-    setIsOrderPlaced(true)
+      order.totalPrice = Math.round(
+        totalPrice - (coupon === "HAPPYDIWALI" ? totalOrder / 10 : 0),
+      )
 
-    toast("Order Placed Successfully🎉😊")
+      const newOrder = await saveNewOrder(order, undefined, setIsError)
+      if (newOrder) {
+        const result = await removeAllItemsFromCreateOrder()
+        if (result) {
+          const productsArray = order.item
+          productsArray.forEach(async (product) => {
+            try {
+              if (product.addToCart) {
+                user.addToCartItems = user.addToCartItems.filter(
+                  (item) => item.id !== product.id,
+                )
+                const itemInClothsData = await fetchClothById(
+                  product.id,
+                  undefined,
+                  setIsError,
+                )
+                delete itemInClothsData.addToCart
+                delete itemInClothsData.quantity
+                delete itemInClothsData.size
+              }
+            } catch (error) {
+              console.error(error)
+              setIsError(error.message)
+            }
+          })
+
+          await updateCartItems(user._id, user.addToCartItems)
+
+          setIsOrderPlaced(true)
+
+          toast("Order Placed Successfully🎉😊")
+        }
+      }
+    } catch (error) {
+      console.error(error)
+      setIsError(error.message)
+    }
   }
 
   const months = [
@@ -237,25 +265,52 @@ export default function PaymentMethods() {
     return today.toLocaleTimeString()
   }
 
+  const [editItems, setEditItems] = useState(false)
+
   useEffect(() => {
     async function fetchData() {
-      const createOrder = await fetchCreateOrder()
-      setCreateOrderInDatabase(createOrder)
-      setProducts(createOrder)
-      const user = await fetchUserById(userId)
-      setUser(user)
-      const orders = await fetchAllOrders()
-      setOrders(orders || [])
-      if (updated) {
-        setUpdated(false)
+      try {
+        setLoading(true)
+
+        const createOrder = await fetchCreateOrderByUserId(
+          userId,
+          setCreateOrderInDatabase,
+          setIsError,
+        )
+        setProducts(createOrder.length === 0 ? [] : createOrder[0].products)
+        await fetchUserById(userId, setUser, setIsError)
+        const orders = await fetchAllOrdersByUserId(
+          userId,
+          undefined,
+          setIsError,
+        )
+        if (!editItems) {
+          setOrders(orders || [])
+        }
+        if (updated) {
+          setUpdated(false)
+        }
+      } catch (error) {
+        console.error(error)
+        setIsError(error.message)
+      } finally {
+        setLoading(false)
       }
     }
     fetchData()
   }, [updated])
 
+  useEffect(() => {
+    !updated && setEditItems(false)
+  }, [editItems])
+
+  if (isError) {
+    return <Error />
+  }
+
   return (
     <>
-      {!orders ? (
+      {loading && !orders ? (
         <PaymentMethodShimmer />
       ) : (
         <>
@@ -263,14 +318,8 @@ export default function PaymentMethods() {
             position="static"
             top="auto"
             zIndex="auto"
-            setSearch={setSearch}
             isSearchBarNeeded={false}
             userDetails={user}
-          />
-          <SearchInPage
-            margin="ms-3"
-            setSearch={setSearch}
-            isSearchBarNeeded={false}
           />
           <main
             className={`mt-3 mb-5 d-lg-flex gap-5 align-items-start ${styles.paymentMethodMainElement}`}
@@ -317,9 +366,17 @@ export default function PaymentMethods() {
                   <p
                     className={`text-decoration-none fw-medium my-0 text-primary ${styles.changeBtn} ${styles.cursor_pointer}`}
                     onClick={async () => {
-                      selectPaymentMethod(false)
-                      const orders = await fetchAllOrders()
-                      setOrders(orders)
+                      try {
+                        selectPaymentMethod(false)
+                        await fetchAllOrdersByUserId(
+                          userId,
+                          setOrders,
+                          setIsError,
+                        )
+                      } catch (error) {
+                        console.error(error)
+                        setIsError(error.message)
+                      }
                     }}
                   >
                     Change
@@ -335,8 +392,8 @@ export default function PaymentMethods() {
                     >
                       Arriving {setDeliveryDate()}
                     </h5>
-                    {products &&
-                      products.map((product) => (
+                    {Products &&
+                      Products.map((product) => (
                         <div
                           key={product.id}
                           className={`card column-gap-4 my-3 ${styles.cardInPaymentMethodPage}`}
@@ -400,12 +457,36 @@ export default function PaymentMethods() {
                             >
                               <button
                                 className="border border-0 bg-white text-danger"
-                                onClick={(e) => {
-                                  const Product = products.filter(
-                                    (item) => item.id !== product.id,
-                                  )
-                                  orders[orders.length - 1].item = Product
-                                  setProducts(Product)
+                                onClick={async (e) => {
+                                  try {
+                                    const Product = Products.filter(
+                                      (item) => item.id !== product.id,
+                                    )
+                                    orders[orders.length - 1].item = Product
+                                    setProducts(Product)
+
+                                    // Update createOrder in Database
+                                    const createOrder = createOrderInDatabase
+
+                                    const createOrderItem =
+                                      createOrder &&
+                                      createOrder.item.length &&
+                                      createOrder.item.filter(
+                                        (item) => item.id === product.id,
+                                      )
+
+                                    const updatedCreateOrder =
+                                      createOrder.item.filter(
+                                        (item) =>
+                                          item.id !== createOrderItem[0].id,
+                                      )
+
+                                    await updateAllItems(updatedCreateOrder)
+                                    setEditItems(true)
+                                  } catch (error) {
+                                    console.error(error)
+                                    setIsError(error.message)
+                                  }
                                 }}
                               >
                                 <i className="bi bi-trash3-fill"></i>
@@ -415,140 +496,163 @@ export default function PaymentMethods() {
                                 className={`border border-0 ${styles.quantityInput}`}
                                 defaultValue={product.quantity || 1}
                                 onChange={async (e) => {
-                                  let inputElementValue = Number(e.target.value)
-                                  // Update clothsData in memory
-                                  const item = clothsData.find(
-                                    (item) => item.id === product.id,
-                                  )
-                                  if (inputElementValue > 0) {
-                                    item.quantity = inputElementValue
-                                  } else {
-                                    item.quantity = 1
-                                  }
-
-                                  // Update user in Database
-                                  const isItemAddedToCart =
-                                    user.addToCartItems.filter(
-                                      (item) => item.id === product.id,
+                                  try {
+                                    let inputElementValue = Number(
+                                      e.target.value,
                                     )
-                                  if (isItemAddedToCart.length) {
+                                    // Update clothsData in memory
+                                    const item = await fetchClothById(
+                                      product.id,
+                                      undefined,
+                                      setIsError,
+                                    )
                                     if (inputElementValue > 0) {
-                                      isItemAddedToCart[0].quantity =
-                                        inputElementValue
+                                      item.quantity = inputElementValue
                                     } else {
-                                      isItemAddedToCart[0].quantity = 1
+                                      item.quantity = 1
                                     }
 
-                                    await updateCartItems(
-                                      user._id,
-                                      user.addToCartItems,
-                                    )
-                                  }
+                                    // Update user in Database
+                                    const isItemAddedToCart =
+                                      user.addToCartItems.filter(
+                                        (item) => item.id === product.id,
+                                      )
+                                    if (isItemAddedToCart.length) {
+                                      if (inputElementValue > 0) {
+                                        isItemAddedToCart[0].quantity =
+                                          inputElementValue
+                                      } else {
+                                        isItemAddedToCart[0].quantity = 1
+                                      }
 
-                                  // Update createOrder in Database
-                                  const createOrder = createOrderInDatabase
+                                      await updateCartItems(
+                                        user._id,
+                                        user.addToCartItems,
+                                      )
+                                    }
 
-                                  const createOrderItem =
-                                    createOrder &&
-                                    createOrder.item.length &&
-                                    createOrder.item.filter(
+                                    // Update createOrder in Database
+                                    const createOrder = createOrderInDatabase
+
+                                    const createOrderItem =
+                                      createOrder &&
+                                      createOrder.item.length &&
+                                      createOrder.item.filter(
+                                        (item) => item.id === product.id,
+                                      )
+
+                                    if (
+                                      createOrderItem &&
+                                      createOrderItem.length
+                                    ) {
+                                      if (inputElementValue > 0) {
+                                        createOrderItem[0].quantity =
+                                          inputElementValue
+                                      } else {
+                                        createOrderItem[0].quantity = 1
+                                      }
+                                    }
+
+                                    await updateAllItems(createOrder.item)
+
+                                    // Update items of current order
+                                    const Product = Products.find(
                                       (item) => item.id === product.id,
                                     )
-
-                                  if (
-                                    createOrderItem &&
-                                    createOrderItem.length
-                                  ) {
-                                    if (inputElementValue > 0) {
-                                      createOrderItem[0].quantity =
-                                        inputElementValue
-                                    } else {
-                                      createOrderItem[0].quantity = 1
-                                    }
+                                    Product.quantity = inputElementValue
+                                    orders[orders.length - 1].item = Products
+                                    // useState(true)
+                                    setEditItems(true)
+                                  } catch (error) {
+                                    console.error(error)
+                                    setIsError(error.message)
                                   }
-
-                                  await updateAllItems(
-                                    "https://e-commerce-website-backend-pi.vercel.app/createOrder/updateItems",
-                                    createOrder.item,
-                                  )
-
-                                  // Update items of current order
-                                  const Product = products.find(
-                                    (item) => item.id === product.id,
-                                  )
-                                  Product.quantity = inputElementValue
-                                  orders[orders.length - 1].item = products
-                                  // useState(true)
                                 }}
                               />
                               <button
                                 className={`border border-0 bg-white fs-5 fw-bold ${styles.increaseQuantityBtn}`}
                                 onClick={async (e) => {
-                                  // Update the input element value
-                                  let inputElementValue = Number(
-                                    e.target.previousElementSibling.value,
-                                  )
-                                  e.target.previousElementSibling.value =
-                                    ++inputElementValue
-
-                                  // Update clothsData in memory
-                                  const item = clothsData.find(
-                                    (item) => item.id === product.id,
-                                  )
-                                  item.quantity = Number(
-                                    e.target.previousElementSibling.value,
-                                  )
-
-                                  // Update user in Database
-                                  const isItemAddedToCart =
-                                    user.addToCartItems.filter(
-                                      (item) => item.id === product.id,
-                                    )
-                                  if (isItemAddedToCart.length) {
-                                    isItemAddedToCart[0].quantity = Number(
+                                  try {
+                                    // Update the input element value
+                                    let inputElementValue = Number(
                                       e.target.previousElementSibling.value,
                                     )
-                                    await updateCartItemsInUser(
-                                      user._id,
-                                      user.addToCartItems,
+                                    e.target.previousElementSibling.value =
+                                      ++inputElementValue
+
+                                    // Update clothsData in memory
+                                    const item = await fetchClothById(
+                                      product.id,
+                                      undefined,
+                                      setIsError,
                                     )
-                                  }
-
-                                  // Update createOrder in Database
-                                  const createOrder = createOrderInDatabase
-
-                                  const createOrderItem =
-                                    createOrder &&
-                                    createOrder.item.length &&
-                                    createOrder.item.filter(
-                                      (item) => item.id === product.id,
-                                    )
-
-                                  if (
-                                    createOrderItem &&
-                                    createOrderItem.length
-                                  ) {
-                                    createOrderItem[0].quantity = Number(
+                                    item.quantity = Number(
                                       e.target.previousElementSibling.value,
                                     )
+
+                                    // Update user in Database
+                                    const isItemAddedToCart =
+                                      user.addToCartItems.filter(
+                                        (item) => item.id === product.id,
+                                      )
+                                    if (isItemAddedToCart.length) {
+                                      isItemAddedToCart[0].quantity = Number(
+                                        e.target.previousElementSibling.value,
+                                      )
+                                      await updateCartItemsInUser(
+                                        user._id,
+                                        user.addToCartItems,
+                                        undefined,
+                                        setIsError,
+                                      )
+                                    }
+
+                                    // Update createOrder in Database
+                                    const createOrder = createOrderInDatabase
+
+                                    const createOrderItem =
+                                      createOrder &&
+                                      createOrder.item.length &&
+                                      createOrder.item.filter(
+                                        (item) => item.id === product.id,
+                                      )
+
+                                    if (
+                                      createOrderItem &&
+                                      createOrderItem.length
+                                    ) {
+                                      createOrderItem[0].quantity = Number(
+                                        e.target.previousElementSibling.value,
+                                      )
+                                    }
+
+                                    const CreateOrder = {
+                                      products: createOrder.item,
+                                      userId,
+                                    }
+                                    await fetchCreateOrderByUserIdAndUpdate(
+                                      userId,
+                                      CreateOrder,
+                                      undefined,
+                                      setIsError,
+                                    )
+
+                                    // Update items of current order
+                                    const Product = Products.find(
+                                      (item) => item.id === product.id,
+                                    )
+                                    Product.quantity = Number(
+                                      e.target.previousElementSibling.value,
+                                    )
+                                    orders[orders.length - 1].item = Products
+
+                                    // To update the variables present in this page
+                                    setUpdated(true)
+                                    setEditItems(true)
+                                  } catch (error) {
+                                    console.error(error)
+                                    setIsError(error.message)
                                   }
-
-                                  await updateAllItemsInCreateOrder(
-                                    "https://e-commerce-website-backend-pi.vercel.app/createOrder/updateItems",
-                                    createOrder.item,
-                                  )
-
-                                  // Update items of current order
-                                  const Product = products.find(
-                                    (item) => item.id === product.id,
-                                  )
-                                  Product.quantity = Number(
-                                    e.target.previousElementSibling.value,
-                                  )
-                                  orders[orders.length - 1].item = products
-
-                                  // To update the variables present in this page
-                                  setUpdated(true)
                                 }}
                               >
                                 +
@@ -1020,7 +1124,7 @@ export default function PaymentMethods() {
                           </p>
                         </div>
                       </div>
-                      {products && products.length === 0 ? (
+                      {Products && Products.length === 0 ? (
                         <Link
                           to="/cart"
                           className={`btn btn-warning rounded-pill mt-4 px-4 ${styles.useThisPaymentMethodBtn}`}
@@ -1037,7 +1141,7 @@ export default function PaymentMethods() {
                                   Date.now().toString() +
                                     Math.floor(Math.random() * 1000),
                                 ),
-                                item: products,
+                                item: Products,
                                 address,
                                 paymentMethod,
                                 deliveryCharge,
@@ -1046,6 +1150,7 @@ export default function PaymentMethods() {
                                 deliveryDate: setDeliveryDate(),
                                 deliveryDay: getDeliveryDay(),
                                 totalPrice: Math.round(totalPrice),
+                                userId,
                               }
                               orders.push(order)
                               setOrders(orders)
