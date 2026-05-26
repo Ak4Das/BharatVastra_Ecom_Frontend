@@ -6,7 +6,7 @@ export async function fetchAllCloths(setFunction, setIsError) {
   }, 10000)
 
   try {
-    const response = await fetch("http://localhost:3000/cloth/", {
+    const response = await fetch("https://e-commerce-website-backend-sooty.vercel.app/cloth/", {
       signal: controller.signal,
     })
 
@@ -39,7 +39,7 @@ export async function fetchClothById(clothId, setFunction, setIsError) {
   }, 10000)
 
   try {
-    const response = await fetch(`http://localhost:3000/cloth/${clothId}`, {
+    const response = await fetch(`https://e-commerce-website-backend-sooty.vercel.app/cloth/${clothId}`, {
       signal: controller.signal,
     })
 
@@ -72,7 +72,7 @@ export async function fetchNewArrivalCloths(setFunction, setIsError) {
   }, 10000)
 
   try {
-    const response = await fetch(`http://localhost:3000/cloth/newArrive/true`, {
+    const response = await fetch(`https://e-commerce-website-backend-sooty.vercel.app/cloth/newArrive/true`, {
       signal: controller.signal,
     })
 
@@ -106,7 +106,7 @@ export async function fetchDistinctCommonCategories(setFunction, setIsError) {
 
   try {
     const response = await fetch(
-      `http://localhost:3000/cloth/categories/distinct`,
+      `https://e-commerce-website-backend-sooty.vercel.app/cloth/categories/distinct`,
       {
         signal: controller.signal,
       },
@@ -146,7 +146,7 @@ export async function fetchClothsByMainCategory(
 
   try {
     const response = await fetch(
-      `http://localhost:3000/cloth/mainCategory/${mainCategory}`,
+      `https://e-commerce-website-backend-sooty.vercel.app/cloth/mainCategory/${mainCategory}`,
       {
         signal: controller.signal,
       },
@@ -186,7 +186,7 @@ export async function fetchClothsByCommonCategory(
 
   try {
     const response = await fetch(
-      `http://localhost:3000/cloth/commonCategory/${commonCategory}`,
+      `https://e-commerce-website-backend-sooty.vercel.app/cloth/commonCategory/${commonCategory}`,
       {
         signal: controller.signal,
       },
@@ -226,7 +226,7 @@ export async function fetchOfferOnACategory(
 
   try {
     const response = await fetch(
-      `http://localhost:3000/cloth/offer/${commonCategory}`,
+      `https://e-commerce-website-backend-sooty.vercel.app/cloth/offer/${commonCategory}`,
       {
         signal: controller.signal,
       },
@@ -261,7 +261,7 @@ export async function fetchAllCategories(setFunction, setIsError) {
   }, 10000)
 
   try {
-    const response = await fetch("http://localhost:3000/category/", {
+    const response = await fetch("https://e-commerce-website-backend-sooty.vercel.app/category/", {
       signal: controller.signal,
     })
 
@@ -294,7 +294,7 @@ export async function fetchCategory(category, setFunction, setIsError) {
   }, 10000)
 
   try {
-    const response = await fetch(`http://localhost:3000/category/${category}`, {
+    const response = await fetch(`https://e-commerce-website-backend-sooty.vercel.app/category/${category}`, {
       signal: controller.signal,
     })
 
@@ -327,7 +327,7 @@ export async function updateClothById(id, clothData, setFunction, setIsError) {
   }, 10000)
 
   try {
-    const response = await fetch(`http://localhost:3000/cloth/update/${id}`, {
+    const response = await fetch(`https://e-commerce-website-backend-sooty.vercel.app/cloth/update/${id}`, {
       method: "PATCH",
       headers: {
         "content-Type": "application/json",
@@ -371,7 +371,7 @@ export async function fetchCreateOrderByUserIdAndUpdate(
 
   try {
     const response = await fetch(
-      `http://localhost:3000/createOrder/updateItems/${userId}`,
+      `https://e-commerce-website-backend-sooty.vercel.app/createOrder/updateItems/${userId}`,
       {
         method: "PATCH",
         headers: {
@@ -411,7 +411,7 @@ export async function fetchCreateOrder(setFunction, setIsError) {
   }, 10000)
 
   try {
-    const response = await fetch("http://localhost:3000/createOrder/", {
+    const response = await fetch("https://e-commerce-website-backend-sooty.vercel.app/createOrder/", {
       signal: controller.signal,
     })
 
@@ -449,7 +449,7 @@ export async function fetchCreateOrderByUserId(
 
   try {
     const response = await fetch(
-      `http://localhost:3000/createOrder/${userId}`,
+      `https://e-commerce-website-backend-sooty.vercel.app/createOrder/${userId}`,
       {
         signal: controller.signal,
       },
@@ -532,7 +532,7 @@ export async function fetchCreateOrderByUserIdAndDelete(
 
   try {
     const response = await fetch(
-      `http://localhost:3000/createOrder/delete/userId/${userId}`,
+      `https://e-commerce-website-backend-sooty.vercel.app/createOrder/delete/userId/${userId}`,
       {
         method: "DELETE",
         signal: controller.signal,
@@ -568,7 +568,7 @@ export async function fetchAllUsers(setFunction, setIsError) {
   }, 10000)
 
   try {
-    const response = await fetch("http://localhost:3000/user/", {
+    const response = await fetch("https://e-commerce-website-backend-sooty.vercel.app/user/", {
       signal: controller.signal,
     })
 
@@ -601,7 +601,7 @@ export async function fetchUserById(id, setFunction, setIsError) {
   }, 10000)
 
   try {
-    const response = await fetch(`http://localhost:3000/user/${id}`, {
+    const response = await fetch(`https://e-commerce-website-backend-sooty.vercel.app/user/${id}`, {
       signal: controller.signal,
     })
 
@@ -641,7 +641,7 @@ export async function updateUser(
 
   try {
     const response = await fetch(
-      `http://localhost:3000/user/updateUser/${id}`,
+      `https://e-commerce-website-backend-sooty.vercel.app/user/updateUser/${id}`,
       {
         method: "POST",
         headers: {
@@ -689,7 +689,7 @@ export async function updateAddressOfUser(
   
   try {
     const response = await fetch(
-      `http://localhost:3000/user/updateUserAddress/${id}`,
+      `https://e-commerce-website-backend-sooty.vercel.app/user/updateUserAddress/${id}`,
       {
         method: "POST",
         headers: {
@@ -736,7 +736,7 @@ export async function updateWishlistItemsInUser(
 
   try {
     const response = await fetch(
-      `http://localhost:3000/user/updateWishlistItems/${id}`,
+      `https://e-commerce-website-backend-sooty.vercel.app/user/updateWishlistItems/${id}`,
       {
         method: "POST",
         headers: {
@@ -782,7 +782,7 @@ export async function updateCartItemsInUser(
 
   try {
     const response = await fetch(
-      `http://localhost:3000/user/updateCartItems/${id}`,
+      `https://e-commerce-website-backend-sooty.vercel.app/user/updateCartItems/${id}`,
       {
         method: "POST",
         headers: {
@@ -822,7 +822,7 @@ export async function saveNewUser(newUser, setFunction, setIsError) {
   }, 10000)
 
   try {
-    const response = await fetch("http://localhost:3000/user/saveUser", {
+    const response = await fetch("https://e-commerce-website-backend-sooty.vercel.app/user/saveUser", {
       method: "POST",
       headers: {
         "content-Type": "application/json",
@@ -860,7 +860,7 @@ export async function saveCreateOrder(createOrder, setFunction, setIsError) {
   }, 10000)
 
   try {
-    const response = await fetch("http://localhost:3000/createOrder/saveItem", {
+    const response = await fetch("https://e-commerce-website-backend-sooty.vercel.app/createOrder/saveItem", {
       method: "POST",
       headers: {
         "content-Type": "application/json",
@@ -898,7 +898,7 @@ export async function saveNewOrder(newOrder, setFunction, setIsError) {
   }, 10000)
 
   try {
-    const response = await fetch("http://localhost:3000/order/saveOrder", {
+    const response = await fetch("https://e-commerce-website-backend-sooty.vercel.app/order/saveOrder", {
       method: "POST",
       headers: {
         "content-Type": "application/json",
@@ -936,7 +936,7 @@ export async function fetchAllOrders(setFunction, setIsError) {
   }, 10000)
 
   try {
-    const response = await fetch("http://localhost:3000/order/", {
+    const response = await fetch("https://e-commerce-website-backend-sooty.vercel.app/order/", {
       signal: controller.signal,
     })
 
@@ -969,7 +969,7 @@ export async function fetchAllOrdersByUserId(userId, setFunction, setIsError) {
   }, 10000)
 
   try {
-    const response = await fetch(`http://localhost:3000/order/user/${userId}`, {
+    const response = await fetch(`https://e-commerce-website-backend-sooty.vercel.app/order/user/${userId}`, {
       signal: controller.signal,
     })
 
@@ -1002,7 +1002,7 @@ export async function fetchOrderByOrderId(orderId, setFunction, setIsError) {
   }, 10000)
 
   try {
-    const response = await fetch(`http://localhost:3000/order/${orderId}`, {
+    const response = await fetch(`https://e-commerce-website-backend-sooty.vercel.app/order/${orderId}`, {
       signal: controller.signal,
     })
 
@@ -1035,7 +1035,7 @@ export async function deleteOrderById(id, setIsError) {
   }, 10000)
 
   try {
-    const response = await fetch(`http://localhost:3000/order/delete/${id}`, {
+    const response = await fetch(`https://e-commerce-website-backend-sooty.vercel.app/order/delete/${id}`, {
       method: "DELETE",
       signal: controller.signal,
     })
@@ -1067,7 +1067,7 @@ export async function updateOrder(id, data, setFunction, setIsError) {
   }, 10000)
 
   try {
-    const response = await fetch(`http://localhost:3000/order/update/${id}`, {
+    const response = await fetch(`https://e-commerce-website-backend-sooty.vercel.app/order/update/${id}`, {
       method: "POST",
       headers: {
         "content-Type": "application/json",
