@@ -323,7 +323,7 @@ export default function WishlistPage() {
 
   return (
     <>
-      {loading || !user ? (
+      {loading ? (
         <WishlistShimmer />
       ) : (
         <>

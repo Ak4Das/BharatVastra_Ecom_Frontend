@@ -37,7 +37,6 @@ export default function CartPage() {
     async function syncFunction() {
       try {
         setLoading(true)
-
       } catch (error) {
         console.error(error)
         setIsError(error.message)
@@ -325,7 +324,7 @@ export default function CartPage() {
 
   return (
     <>
-      {loading || !user ? (
+      {loading ? (
         <CartPageShimmer />
       ) : (
         <>

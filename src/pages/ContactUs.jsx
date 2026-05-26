@@ -35,7 +35,7 @@ export default function ContactUs() {
 
   return (
     <>
-      {loading || !user ? (
+      {loading ? (
         <div
           className="d-flex flex-column align-items-center justify-content-center gap-3 bg-dark-subtle text-dark fw-bold fs-1"
           style={{ width: "100vw", height: "100vh" }}

@@ -317,7 +317,7 @@ export default function NewArrival() {
 
   return (
     <>
-      {loading || !user ? (
+      {loading ? (
         <NewArrivalShimmer />
       ) : (
         <>

@@ -96,7 +96,7 @@ export default function App() {
         </div>
       ) : (
         <>
-          {loading || !user ? (
+          {loading ? (
             <AppShimmer />
           ) : (
             <>

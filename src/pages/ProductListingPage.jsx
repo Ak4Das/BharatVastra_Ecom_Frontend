@@ -472,7 +472,7 @@ export default function ProductListingPage() {
 
   return (
     <>
-      {loading || !user ? (
+      {loading ? (
         <ProductListingShimmer />
       ) : (
         <>

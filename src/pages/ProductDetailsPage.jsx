@@ -686,7 +686,7 @@ export default function ProductDetailsPage() {
 
   return (
     <>
-      {loading || !user ? (
+      {loading ? (
         <ProductDetailsShimmer />
       ) : (
         <>

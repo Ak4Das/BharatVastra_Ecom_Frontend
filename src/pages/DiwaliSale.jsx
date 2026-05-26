@@ -58,7 +58,7 @@ export default function DiwaliSale() {
 
   return (
     <>
-      {loading || !user ? (
+      {loading ? (
         <DiwaliSaleShimmer />
       ) : (
         <>
