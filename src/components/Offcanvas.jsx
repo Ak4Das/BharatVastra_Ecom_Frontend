@@ -79,7 +79,7 @@ export default function Offcanvas({
           />
         ) : (
           <button
-            className={`rounded bi bi-list ${styles.button}`}
+            className={`rounded bi bi-list mt-2 ${styles.button}`}
             type="button"
             onClick={handleClick}
             title="filter"

@@ -6,6 +6,7 @@ import GetUserId from "../services/GetClothsData"
 import Error from "../components/Error"
 import Header from "../components/Header"
 import Footer from "../components/Footer"
+import { toast } from "react-toastify"
 
 export default function AddAddressForm() {
   const [loading, setLoading] = useState(false)
@@ -24,8 +25,10 @@ export default function AddAddressForm() {
   const [area, setArea] = useState("")
   const [city, setCity] = useState("")
   const [state, setState] = useState("")
-  async function handleSubmit() {
+  async function handleSubmit(e) {
+    const form = document.getElementById("addAddressForm");
     try {
+      e.preventDefault()
       const Address = {
         country: "India",
         fullName,
@@ -40,6 +43,8 @@ export default function AddAddressForm() {
       Address.id = address ? id : user.address.length
       address ? (user.address[id] = Address) : user.address.push(Address)
       await updateAddressOfUser(userId, user.address, undefined, setIsError)
+      form.reset()
+      toast("Address added successfully")
     } catch (error) {
       console.error(error)
       setIsError(error.message)
@@ -97,7 +102,7 @@ export default function AddAddressForm() {
           />
           <main className="container my-5">
             <h2>Add a new address</h2>
-            <form className="mt-3">
+            <form onSubmit={handleSubmit} id="addAddressForm" className="mt-3">
               <label htmlFor="country" className="form-label">
                 Country/Region
               </label>
@@ -207,13 +212,12 @@ export default function AddAddressForm() {
               area &&
               city &&
               state ? (
-                <Link
-                  to="/userAddress"
+                <button
                   className="btn btn-warning rounded-pill mt-3"
-                  onClick={handleSubmit}
+                  type="submit"
                 >
                   {address ? "Edit Address" : "Add Address"}
-                </Link>
+                </button>
               ) : (
                 <button
                   className="btn btn-warning rounded-pill mt-3"
