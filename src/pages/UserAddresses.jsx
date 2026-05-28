@@ -25,7 +25,9 @@ export default function UserAddresses() {
         setUpdated,
       )
     } catch (error) {
-      console.error(error)
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
       setIsError(error.message)
     }
   }
@@ -50,7 +52,9 @@ export default function UserAddresses() {
         setUpdated,
       )
     } catch (error) {
-      console.error(error)
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
       setIsError(error.message)
     }
   }
@@ -62,7 +66,9 @@ export default function UserAddresses() {
         setUpdated(false)
       }
     } catch (error) {
-      console.error(error)
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
       setIsError(error.message)
     }
   }
@@ -129,7 +135,9 @@ export default function UserAddresses() {
                         setUpdated,
                       )
                     } catch (error) {
-                      console.error(error)
+                      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+                        console.error(error)
+                      }
                       setIsError(error.message)
                     }
                   }}

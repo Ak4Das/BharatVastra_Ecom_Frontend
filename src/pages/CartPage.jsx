@@ -38,7 +38,9 @@ export default function CartPage() {
       try {
         setLoading(true)
       } catch (error) {
-        console.error(error)
+        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+          console.error(error)
+        }
         setIsError(error.message)
       }
     }
@@ -66,7 +68,9 @@ export default function CartPage() {
           }
         }
       } catch (error) {
-        console.error(error)
+        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+          console.error(error)
+        }
         setIsError(error.message)
       }
     }
@@ -146,7 +150,9 @@ export default function CartPage() {
           setUpdated(true)
         }
       } catch (error) {
-        console.error(error)
+        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+          console.error(error)
+        }
         setIsError(error.message)
       } finally {
         setLoading(false)
@@ -285,7 +291,9 @@ export default function CartPage() {
         }
       }
     } catch (error) {
-      console.error(error)
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
       setIsError(error.message)
     }
   }
@@ -490,7 +498,12 @@ export default function CartPage() {
                                                 setUpdated(true)
                                               }
                                             } catch (error) {
-                                              console.error(error)
+                                              if (
+                                                import.meta.env.VITE_MODE ===
+                                                "DEVELOPMENT"
+                                              ) {
+                                                console.error(error)
+                                              }
                                               setIsError(error.message)
                                             }
                                           }}
@@ -582,7 +595,12 @@ export default function CartPage() {
                                               // To update the variables present in this page
                                               setUpdated(true)
                                             } catch (error) {
-                                              console.error(error)
+                                              if (
+                                                import.meta.env.VITE_MODE ===
+                                                "DEVELOPMENT"
+                                              ) {
+                                                console.error(error)
+                                              }
                                               setIsError(error.message)
                                             }
                                           }}
@@ -684,7 +702,12 @@ export default function CartPage() {
                                                 )
                                               }, 500)
                                             } catch (error) {
-                                              console.error(error)
+                                              if (
+                                                import.meta.env.VITE_MODE ===
+                                                "DEVELOPMENT"
+                                              ) {
+                                                console.error(error)
+                                              }
                                               setIsError(error.message)
                                             }
                                           }}
@@ -774,7 +797,12 @@ export default function CartPage() {
                                                 )
                                               }, 500)
                                             } catch (error) {
-                                              console.error(error)
+                                              if (
+                                                import.meta.env.VITE_MODE ===
+                                                "DEVELOPMENT"
+                                              ) {
+                                                console.error(error)
+                                              }
                                               setIsError(error.message)
                                             }
                                           }}
@@ -864,7 +892,12 @@ export default function CartPage() {
                                                 )
                                               }, 500)
                                             } catch (error) {
-                                              console.error(error)
+                                              if (
+                                                import.meta.env.VITE_MODE ===
+                                                "DEVELOPMENT"
+                                              ) {
+                                                console.error(error)
+                                              }
                                               setIsError(error.message)
                                             }
                                           }}
@@ -954,7 +987,12 @@ export default function CartPage() {
                                                 )
                                               }, 500)
                                             } catch (error) {
-                                              console.error(error)
+                                              if (
+                                                import.meta.env.VITE_MODE ===
+                                                "DEVELOPMENT"
+                                              ) {
+                                                console.error(error)
+                                              }
                                               setIsError(error.message)
                                             }
                                           }}
@@ -1044,7 +1082,12 @@ export default function CartPage() {
                                                 )
                                               }, 500)
                                             } catch (error) {
-                                              console.error(error)
+                                              if (
+                                                import.meta.env.VITE_MODE ===
+                                                "DEVELOPMENT"
+                                              ) {
+                                                console.error(error)
+                                              }
                                               setIsError(error.message)
                                             }
                                           }}
@@ -1108,7 +1151,12 @@ export default function CartPage() {
 
                                           toast("Product remove from cart")
                                         } catch (error) {
-                                          console.error(error)
+                                          if (
+                                            import.meta.env.VITE_MODE ===
+                                            "DEVELOPMENT"
+                                          ) {
+                                            console.error(error)
+                                          }
                                           setIsError(error.message)
                                         }
                                       }}
@@ -1183,7 +1231,9 @@ export default function CartPage() {
                           setConfirmOrder(true)
                           setUpdated(true)
                         } catch (error) {
-                          console.error(error)
+                          if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+                            console.error(error)
+                          }
                           setIsError(error.message)
                         }
                       }}

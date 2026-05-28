@@ -24,7 +24,9 @@ export default function LoginForm() {
       localStorage.setItem("userId", newUser._id)
       window.location.reload()
     } catch (error) {
-      console.error(error)
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
       setIsError(error.message)
     }
   }

@@ -70,7 +70,9 @@ export default function ProductDetailsPage() {
           await syncUserAndCreateOrder(userId, setIsError)
         }
       } catch (error) {
-        console.error(error)
+        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+          console.error(error)
+        }
         setIsError(error.message)
       }
     }
@@ -89,7 +91,9 @@ export default function ProductDetailsPage() {
           const user = await fetchUserById(userId, setUser, setIsError)
         }
       } catch (error) {
-        console.error(error)
+        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+          console.error(error)
+        }
         setIsError(error.message)
       }
     }
@@ -112,7 +116,9 @@ export default function ProductDetailsPage() {
           setSimilarProducts(allSimilarProducts)
         }
       } catch (error) {
-        console.error(error)
+        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+          console.error(error)
+        }
         setIsError(error.message)
       }
     }
@@ -242,7 +248,9 @@ export default function ProductDetailsPage() {
       setQuantity(Number(e.target.previousElementSibling.value))
       setUpdated(true)
     } catch (error) {
-      console.error(error)
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
       setIsError(error.message)
     }
   }
@@ -275,7 +283,9 @@ export default function ProductDetailsPage() {
         setUpdated(true)
       }
     } catch (error) {
-      console.error(error)
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
       setIsError(error.message)
     }
   }
@@ -329,7 +339,9 @@ export default function ProductDetailsPage() {
 
       toast("Product added to cart😊")
     } catch (error) {
-      console.error(error)
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
       setIsError(error.message)
     }
   }
@@ -376,7 +388,9 @@ export default function ProductDetailsPage() {
         toast("Product added to wishlist😊")
       }
     } catch (error) {
-      console.error(error)
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
       setIsError(error.message)
     }
   }
@@ -465,7 +479,9 @@ export default function ProductDetailsPage() {
           setUpdated(false)
         }
       } catch (error) {
-        console.error(error)
+        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+          console.error(error)
+        }
         setIsError(error.message)
       }
     }
@@ -555,7 +571,9 @@ export default function ProductDetailsPage() {
             clearInterval(timerId)
           }
         } catch (error) {
-          console.error(error)
+          if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+            console.error(error)
+          }
           setIsError(error.message)
         }
       }, 1000)
@@ -584,7 +602,9 @@ export default function ProductDetailsPage() {
           userId && (await updateCreateOrder(userId, obj))
         }
       } catch (error) {
-        console.error(error)
+        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+          console.error(error)
+        }
         setIsError(error.message)
       } finally {
         setLoading(false)
@@ -671,7 +691,9 @@ export default function ProductDetailsPage() {
       }
       setUpdated(true)
     } catch (error) {
-      console.error(error)
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
       setIsError(error.message)
     }
   }
@@ -897,7 +919,9 @@ export default function ProductDetailsPage() {
                             // To update clothsData, createOrder and the variables present in this page
                             setUpdated(true)
                           } catch (error) {
-                            console.error(error)
+                            if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+                              console.error(error)
+                            }
                             setIsError(error.message)
                           }
                         }}
@@ -966,7 +990,9 @@ export default function ProductDetailsPage() {
                               toast("Please login to your account")
                             }
                           } catch (error) {
-                            console.error(error)
+                            if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+                              console.error(error)
+                            }
                             setIsError(error.message)
                           }
                         }}
@@ -1020,7 +1046,9 @@ export default function ProductDetailsPage() {
                               toast("Please login to your account")
                             }
                           } catch (error) {
-                            console.error(error)
+                            if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+                              console.error(error)
+                            }
                             setIsError(error.message)
                           }
                         }}
@@ -1073,7 +1101,9 @@ export default function ProductDetailsPage() {
                               toast("Please login to your account")
                             }
                           } catch (error) {
-                            console.error(error)
+                            if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+                              console.error(error)
+                            }
                             setIsError(error.message)
                           }
                         }}
@@ -1126,7 +1156,9 @@ export default function ProductDetailsPage() {
                               toast("Please login to your account")
                             }
                           } catch (error) {
-                            console.error(error)
+                            if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+                              console.error(error)
+                            }
                             setIsError(error.message)
                           }
                         }}
@@ -1179,7 +1211,9 @@ export default function ProductDetailsPage() {
                               toast("Please login to your account")
                             }
                           } catch (error) {
-                            console.error(error)
+                            if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+                              console.error(error)
+                            }
                             setIsError(error.message)
                           }
                         }}

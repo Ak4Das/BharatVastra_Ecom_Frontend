@@ -26,7 +26,7 @@ export default function AddAddressForm() {
   const [city, setCity] = useState("")
   const [state, setState] = useState("")
   async function handleSubmit(e) {
-    const form = document.getElementById("addAddressForm");
+    const form = document.getElementById("addAddressForm")
     try {
       e.preventDefault()
       const Address = {
@@ -46,7 +46,9 @@ export default function AddAddressForm() {
       form.reset()
       toast("Address added successfully")
     } catch (error) {
-      console.error(error)
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
       setIsError(error.message)
     }
   }
@@ -69,7 +71,9 @@ export default function AddAddressForm() {
           setUpdated(false)
         }
       } catch (error) {
-        console.error(error)
+        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+          console.error(error)
+        }
         setIsError(error.message)
       } finally {
         setLoading(false)

@@ -203,7 +203,9 @@ export default function PaymentMethods() {
                 delete itemInClothsData.size
               }
             } catch (error) {
-              console.error(error)
+              if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+                console.error(error)
+              }
               setIsError(error.message)
             }
           })
@@ -216,7 +218,9 @@ export default function PaymentMethods() {
         }
       }
     } catch (error) {
-      console.error(error)
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
       setIsError(error.message)
     }
   }
@@ -291,7 +295,9 @@ export default function PaymentMethods() {
           setUpdated(false)
         }
       } catch (error) {
-        console.error(error)
+        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+          console.error(error)
+        }
         setIsError(error.message)
       } finally {
         setLoading(false)
@@ -374,7 +380,9 @@ export default function PaymentMethods() {
                           setIsError,
                         )
                       } catch (error) {
-                        console.error(error)
+                        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+                          console.error(error)
+                        }
                         setIsError(error.message)
                       }
                     }}
@@ -484,7 +492,12 @@ export default function PaymentMethods() {
                                     await updateAllItems(updatedCreateOrder)
                                     setEditItems(true)
                                   } catch (error) {
-                                    console.error(error)
+                                    if (
+                                      import.meta.env.VITE_MODE ===
+                                      "DEVELOPMENT"
+                                    ) {
+                                      console.error(error)
+                                    }
                                     setIsError(error.message)
                                   }
                                 }}
@@ -564,7 +577,12 @@ export default function PaymentMethods() {
                                     // useState(true)
                                     setEditItems(true)
                                   } catch (error) {
-                                    console.error(error)
+                                    if (
+                                      import.meta.env.VITE_MODE ===
+                                      "DEVELOPMENT"
+                                    ) {
+                                      console.error(error)
+                                    }
                                     setIsError(error.message)
                                   }
                                 }}
@@ -650,7 +668,12 @@ export default function PaymentMethods() {
                                     setUpdated(true)
                                     setEditItems(true)
                                   } catch (error) {
-                                    console.error(error)
+                                    if (
+                                      import.meta.env.VITE_MODE ===
+                                      "DEVELOPMENT"
+                                    ) {
+                                      console.error(error)
+                                    }
                                     setIsError(error.message)
                                   }
                                 }}

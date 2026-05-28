@@ -43,7 +43,9 @@ export default function YourOrders() {
         setUpdated(false)
       }
     } catch (error) {
-      console.error(error)
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
       setIsError(error.message)
     } finally {
       setLoading(false)
@@ -293,7 +295,11 @@ export default function YourOrders() {
                                   toast("Order deleted successfully")
                                 }
                               } catch (error) {
-                                console.error(error)
+                                if (
+                                  import.meta.env.VITE_MODE === "DEVELOPMENT"
+                                ) {
+                                  console.error(error)
+                                }
                                 setIsError(error.message)
                               }
                             }}

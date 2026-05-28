@@ -71,6 +71,9 @@ export default function App() {
       }
       await fetchAllCategories(setCategory, setIsError)
     } catch (error) {
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
       setIsError(error.message)
     } finally {
       setLoading(false)

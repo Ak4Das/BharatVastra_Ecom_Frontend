@@ -124,7 +124,9 @@ export default function EditYourOrder() {
 
       toast("Changes Saved Successfully😊")
     } catch (error) {
-      console.error(error)
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
       setIsError(error.message)
     }
   }
@@ -144,7 +146,9 @@ export default function EditYourOrder() {
           setUpdated(false)
         }
       } catch (error) {
-        console.error(error)
+        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+          console.error(error)
+        }
         setIsError(error.message)
       } finally {
         setLoading(false)

@@ -47,7 +47,9 @@ export default function UserProfile() {
     try {
       await updateUser(userId, data, undefined, setIsError, setUpdated)
     } catch (error) {
-      console.error(error)
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
       setIsError(error.message)
     }
   }
@@ -73,7 +75,9 @@ export default function UserProfile() {
       setImageUrl("")
       setImagePath("")
     } catch (error) {
-      console.error(error)
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
       setIsError(error.message)
     }
   }
@@ -106,7 +110,9 @@ export default function UserProfile() {
         setUpdated(false)
       }
     } catch (error) {
-      console.error(error)
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
       setIsError(error.message)
     } finally {
       setLoading(false)
