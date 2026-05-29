@@ -225,14 +225,15 @@ export default function CartPage() {
       if (!isAddedToWishlist.length) {
         // Update user in Database
         user.addToWishlistItems.push({ id: Number(e.target.value) })
-        promises.push(
-          updateWishlistItemsInUser(
+        promises.push({
+          name: "user",
+          request: updateWishlistItemsInUser(
             user._id,
             user.addToWishlistItems,
             undefined,
             setIsError,
           ),
-        )
+        })
 
         // Update finalClothsData in memory
         const item = finalClothsData.find(
@@ -255,23 +256,40 @@ export default function CartPage() {
         const createOrder = { products: createOrderInDatabase.item, userId }
         Product &&
           Product.length &&
-          (await fetchCreateOrderByUserIdAndUpdate(
-            userId,
-            createOrder,
-            undefined,
-            setIsError,
-          ))
+          promises.push({
+            name: "createOrder",
+            request: fetchCreateOrderByUserIdAndUpdate(
+              userId,
+              createOrder,
+              undefined,
+              setIsError,
+            ),
+          })
 
-        const result = await Promise.all(promises)
+        const result = await Promise.all(
+          promises.map((promise) => promise.request),
+        )
+        const indexOfRejectedPromises = []
         let isAllPromisesFulfilled = true
-        result.forEach((res) => {
+        result.forEach((res, index) => {
           if (res === undefined) {
             isAllPromisesFulfilled = false
+            indexOfRejectedPromises.push(index)
           }
         })
+        const rejectedRequests = indexOfRejectedPromises.map(
+          (index) => promises[index],
+        )
         const isAnyPromiseRejected = isAllPromisesFulfilled ? false : true
         if (isAnyPromiseRejected) {
-          userId && (await syncUserAndCreateOrder(userId, setIsError))
+          userId &&
+            (await syncUserAndCreateOrder({
+              userId,
+              productId: Number(e.target.value),
+              setIsError,
+              action: "wishlist",
+              rejectedRequests,
+            }))
         } else {
           // For interactivity
           const btn = e.target

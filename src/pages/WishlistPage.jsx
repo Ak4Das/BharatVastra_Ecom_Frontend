@@ -115,12 +115,15 @@ export default function WishlistPage() {
           createOrderItem.size = ""
         }
         const CreateOrder = { products: createOrder.item, userId }
-        await fetchCreateOrderByUserIdAndUpdate(
-          userId,
-          CreateOrder,
-          undefined,
-          setIsError,
-        )
+        promises.push({
+          name: "createOrder",
+          request: fetchCreateOrderByUserIdAndUpdate(
+            userId,
+            CreateOrder,
+            undefined,
+            setIsError,
+          ),
+        })
       }
 
       // Update user in Database
@@ -136,25 +139,40 @@ export default function WishlistPage() {
       } else {
         item[0].quantity = item[0].quantity ? item[0].quantity + 1 : 2
       }
-      promises.push(
-        updateCartItemsInUser(
+      promises.push({
+        name: "user",
+        request: updateCartItemsInUser(
           user._id,
           user.addToCartItems,
           undefined,
           setIsError,
         ),
-      )
+      })
 
-      const result = await Promise.all(promises)
+      const result = await Promise.all(
+        promises.map((promise) => promise.request),
+      )
+      const indexOfRejectedPromises = []
       let isAllPromisesFulfilled = true
-      result.forEach((res) => {
+      result.forEach((res, index) => {
         if (res === undefined) {
           isAllPromisesFulfilled = false
+          indexOfRejectedPromises.push(index)
         }
       })
+      const rejectedRequests = indexOfRejectedPromises.map(
+        (index) => promises[index],
+      )
       const isAnyPromiseRejected = isAllPromisesFulfilled ? false : true
       if (isAnyPromiseRejected) {
-        userId && (await syncUserAndCreateOrder(userId, setIsError))
+        userId &&
+          (await syncUserAndCreateOrder({
+            userId,
+            productId: Number(e.target.value),
+            setIsError,
+            action: "cart",
+            rejectedRequests,
+          }))
       } else {
         // For interactivity
         const product = user.addToCartItems.find(
@@ -212,14 +230,15 @@ export default function WishlistPage() {
         (item) => item.id !== Number(e.target.value),
       )
 
-      promises.push(
-        updateWishlistItemsInUser(
+      promises.push({
+        name: "user",
+        request: updateWishlistItemsInUser(
           user._id,
           remainingWishlistItem,
           undefined,
           setIsError,
         ),
-      )
+      })
 
       // Update createOrder in Database
       const Product =
@@ -231,24 +250,41 @@ export default function WishlistPage() {
       if (Product && Product.length) {
         delete Product[0].addToWishList
         const CreateOrder = { products: createOrder.item, userId }
-        await fetchCreateOrderByUserIdAndUpdate(
-          userId,
-          CreateOrder,
-          undefined,
-          setIsError,
-        )
+        promises.push({
+          name: "createOrder",
+          request: fetchCreateOrderByUserIdAndUpdate(
+            userId,
+            CreateOrder,
+            undefined,
+            setIsError,
+          ),
+        })
       }
 
-      const result = await Promise.all(promises)
+      const result = await Promise.all(
+        promises.map((promise) => promise.request),
+      )
+      const indexOfRejectedPromises = []
       let isAllPromisesFulfilled = true
-      result.forEach((res) => {
+      result.forEach((res, index) => {
         if (res === undefined) {
           isAllPromisesFulfilled = false
+          indexOfRejectedPromises.push(index)
         }
       })
+      const rejectedRequests = indexOfRejectedPromises.map(
+        (index) => promises[index],
+      )
       const isAnyPromiseRejected = isAllPromisesFulfilled ? false : true
       if (isAnyPromiseRejected) {
-        userId && (await syncUserAndCreateOrder(userId, setIsError))
+        userId &&
+          (await syncUserAndCreateOrder({
+            userId,
+            productId: Number(e.target.value),
+            setIsError,
+            action: "wishlist",
+            rejectedRequests,
+          }))
       } else {
         // To update the variables present in this page
         setUpdated(true)

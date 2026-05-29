@@ -145,14 +145,15 @@ export default function ProductListingPage() {
           quantity: 1,
           size: "",
         })
-        promises.push(
-          updateCartItemsInUser(
+        promises.push({
+          name: "user",
+          request: updateCartItemsInUser(
             user._id,
             user.addToCartItems,
             undefined,
             setIsError,
           ),
-        )
+        })
 
         // Update clothsData in memory
         const item = clothsData.find(
@@ -177,24 +178,41 @@ export default function ProductListingPage() {
           Product[0].quantity = 1
           Product[0].size = ""
           const CreateOrder = { products: createOrder.item, userId }
-          await fetchCreateOrderByUserIdAndUpdate(
-            userId,
-            CreateOrder,
-            undefined,
-            setIsError,
-          )
+          promises.push({
+            name: "createOrder",
+            request: fetchCreateOrderByUserIdAndUpdate(
+              userId,
+              CreateOrder,
+              undefined,
+              setIsError,
+            ),
+          })
         }
 
-        const result = await Promise.all(promises)
+        const result = await Promise.all(
+          promises.map((promise) => promise.request),
+        )
+        const indexOfRejectedPromises = []
         let isAllPromisesFulfilled = true
-        result.forEach((res) => {
+        result.forEach((res, index) => {
           if (res === undefined) {
             isAllPromisesFulfilled = false
+            indexOfRejectedPromises.push(index)
           }
         })
+        const rejectedRequests = indexOfRejectedPromises.map(
+          (index) => promises[index],
+        )
         const isAnyPromiseRejected = isAllPromisesFulfilled ? false : true
         if (isAnyPromiseRejected) {
-          userId && (await syncUserAndCreateOrder(userId, setIsError))
+          userId &&
+            (await syncUserAndCreateOrder({
+              userId,
+              productId: Number(e.target.value),
+              setIsError,
+              action: "cart",
+              rejectedRequests,
+            }))
         } else {
           // For interactivity
           const btn = e.target
@@ -235,14 +253,15 @@ export default function ProductListingPage() {
       if (!isAddedToWishlist.length) {
         // Update user in Database
         user.addToWishlistItems.push({ id: Number(e.target.value) })
-        promises.push(
-          updateWishlistItemsInUser(
+        promises.push({
+          name: "user",
+          request: updateWishlistItemsInUser(
             user._id,
             user.addToWishlistItems,
             undefined,
             setIsError,
           ),
-        )
+        })
 
         // Update clothsData in memory
         const item = clothsData.find(
@@ -262,24 +281,41 @@ export default function ProductListingPage() {
         if (Product && Product.length) {
           Product[0].addToWishList = true
           const CreateOrder = { products: createOrder.item, userId }
-          await fetchCreateOrderByUserIdAndUpdate(
-            userId,
-            CreateOrder,
-            undefined,
-            setIsError,
-          )
+          promises.push({
+            name: "createOrder",
+            request: fetchCreateOrderByUserIdAndUpdate(
+              userId,
+              CreateOrder,
+              undefined,
+              setIsError,
+            ),
+          })
         }
 
-        const result = await Promise.all(promises)
+        const result = await Promise.all(
+          promises.map((promise) => promise.request),
+        )
+        const indexOfRejectedPromises = []
         let isAllPromisesFulfilled = true
-        result.forEach((res) => {
+        result.forEach((res, index) => {
           if (res === undefined) {
             isAllPromisesFulfilled = false
+            indexOfRejectedPromises.push(index)
           }
         })
+        const rejectedRequests = indexOfRejectedPromises.map(
+          (index) => promises[index],
+        )
         const isAnyPromiseRejected = isAllPromisesFulfilled ? false : true
         if (isAnyPromiseRejected) {
-          userId && (await syncUserAndCreateOrder(userId, setIsError))
+          userId &&
+            (await syncUserAndCreateOrder({
+              userId,
+              productId: Number(e.target.value),
+              setIsError,
+              action: "wishlist",
+              rejectedRequests,
+            }))
         } else {
           // For interactivity
           const btn = e.target

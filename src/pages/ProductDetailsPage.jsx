@@ -24,7 +24,6 @@ import {
 import ProductDetailsShimmer from "../shimmers/ProductDetails.shimmer.jsx"
 import Footer from "../components/Footer.jsx"
 import GetUserId from "../services/GetClothsData.js"
-import { syncUserAndCreateOrder } from "../services/Function.js"
 import Error from "../components/Error.jsx"
 
 export default function ProductDetailsPage() {
@@ -66,9 +65,6 @@ export default function ProductDetailsPage() {
       try {
         setLoading(true)
 
-        if (userId) {
-          await syncUserAndCreateOrder(userId, setIsError)
-        }
       } catch (error) {
         if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
           console.error(error)
