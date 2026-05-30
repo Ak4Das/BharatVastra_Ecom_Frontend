@@ -11,7 +11,6 @@ import SearchInPage from "../components/SearchInPage"
 import { toast } from "react-toastify"
 import rightArrow from "../assets/images/right-arrow.png"
 import {
-  fetchAllCloths,
   updateClothById,
   fetchCreateOrderByUserId,
   fetchCreateOrderByUserIdAndUpdate,

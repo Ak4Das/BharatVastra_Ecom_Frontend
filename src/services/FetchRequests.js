@@ -5,39 +5,6 @@ if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
   url = "https://e-commerce-website-backend-sooty.vercel.app"
 }
 
-export async function fetchAllCloths(setFunction, setIsError) {
-  const controller = new AbortController()
-
-  const timerId = setTimeout(() => {
-    controller.abort()
-  }, 10000)
-
-  try {
-    const response = await fetch(`${url}/cloth/`, {
-      signal: controller.signal,
-    })
-
-    clearTimeout(timerId)
-
-    if (!response.ok) {
-      throw new Error("Request failed")
-    }
-
-    const data = await response.json()
-    setFunction && setFunction(data)
-    return data
-  } catch (error) {
-    clearTimeout(timerId)
-
-    if (error.name === "AbortError") {
-      setIsError && setIsError("Request timeout")
-      return
-    }
-
-    throw error
-  }
-}
-
 export async function fetchClothById(clothId, setFunction, setIsError) {
   const controller = new AbortController()
 
