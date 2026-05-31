@@ -971,7 +971,7 @@ export async function updateOrder(id, data, setFunction, setIsError) {
 
   try {
     const response = await fetch(`${url}/order/update/${id}`, {
-      method: "POST",
+      method: "PATCH",
       headers: {
         "content-Type": "application/json",
       },
