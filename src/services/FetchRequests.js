@@ -24,8 +24,8 @@ export async function fetchClothById(clothId, setFunction, setIsError) {
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -57,8 +57,8 @@ export async function fetchNewArrivalCloths(setFunction, setIsError) {
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -90,8 +90,8 @@ export async function fetchDistinctCommonCategories(setFunction, setIsError) {
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -127,8 +127,8 @@ export async function fetchClothsByMainCategory(
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -167,8 +167,8 @@ export async function fetchClothsByCommonCategory(
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -204,8 +204,8 @@ export async function fetchOfferOnACategory(
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -237,8 +237,8 @@ export async function fetchAllCategories(setFunction, setIsError) {
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -270,8 +270,8 @@ export async function fetchCategory(category, setFunction, setIsError) {
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -308,8 +308,8 @@ export async function updateClothById(id, clothData, setFunction, setIsError) {
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -351,8 +351,8 @@ export async function fetchCreateOrderByUserIdAndUpdate(
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -384,8 +384,8 @@ export async function fetchCreateOrder(setFunction, setIsError) {
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -421,51 +421,8 @@ export async function fetchCreateOrderByUserId(
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
-  } catch (error) {
-    clearTimeout(timerId)
-
-    if (error.name === "AbortError") {
-      setIsError && setIsError("Request timeout")
-      return
-    }
-
-    throw error
-  }
-}
-
-export async function updateAllItemsInCreateOrder(
-  url,
-  itemsData,
-  setFunction,
-  setIsError,
-) {
-  const controller = new AbortController()
-
-  const timerId = setTimeout(() => {
-    controller.abort()
-  }, 10000)
-
-  try {
-    const response = await fetch(url, {
-      method: "PUT",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(itemsData),
-      signal: controller.signal,
-    })
-
-    clearTimeout(timerId)
-
-    if (!response.ok) {
-      throw new Error("Request failed")
-    }
-
-    const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -502,8 +459,8 @@ export async function fetchCreateOrderByUserIdAndDelete(
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -535,8 +492,8 @@ export async function fetchAllUsers(setFunction, setIsError) {
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -568,8 +525,8 @@ export async function fetchUserById(id, setFunction, setIsError) {
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -612,9 +569,9 @@ export async function updateUser(
     }
 
     const Data = await response.json()
-    setFunction && setFunction(Data)
+    setFunction && setFunction(Data.respondedData)
     setUpdated && setUpdated(true)
-    return Data
+    return Data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -657,9 +614,9 @@ export async function updateAddressOfUser(
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
+    setFunction && setFunction(data.respondedData)
     setUpdated && setUpdated(true)
-    return data
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -701,8 +658,8 @@ export async function updateWishlistItemsInUser(
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -744,8 +701,8 @@ export async function updateCartItemsInUser(
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -782,8 +739,8 @@ export async function saveNewUser(newUser, setFunction, setIsError) {
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -820,8 +777,8 @@ export async function saveCreateOrder(createOrder, setFunction, setIsError) {
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -858,8 +815,8 @@ export async function saveNewOrder(newOrder, setFunction, setIsError) {
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -891,8 +848,8 @@ export async function fetchAllOrders(setFunction, setIsError) {
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -924,8 +881,8 @@ export async function fetchAllOrdersByUserId(userId, setFunction, setIsError) {
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -957,8 +914,8 @@ export async function fetchOrderByOrderId(orderId, setFunction, setIsError) {
     }
 
     const data = await response.json()
-    setFunction && setFunction(data)
-    return data
+    setFunction && setFunction(data.respondedData)
+    return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -990,7 +947,9 @@ export async function deleteOrderById(id, setIsError) {
       throw new Error("Request failed")
     }
 
-    return await response.json()
+    const deletedOrder = await response.json()
+
+    return deletedOrder.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
@@ -1027,8 +986,8 @@ export async function updateOrder(id, data, setFunction, setIsError) {
     }
 
     const Data = await response.json()
-    setFunction && setFunction(Data)
-    return Data
+    setFunction && setFunction(Data.respondedData)
+    return Data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
