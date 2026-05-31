@@ -36,28 +36,28 @@ node index.js
 
 #### *Frontend*
 
-- **JavaScript (ES6+)**
-- **React.js**
-- **HTML5**
-- **CSS3**
-- **Bootstrap**
+* **JavaScript (ES6+)**
+* **React.js**
+* **HTML5**
+* **CSS3**
+* **Bootstrap**
 
 #### *Backend*
 
-- **Node.js**
-- **Express.js**
+* **Node.js**
+* **Express.js**
 
 #### *Database*
 
-- **MongoDB**
+* **MongoDB**
 
 ## Libraries & Tools
 
 #### These help implement specific features:
 
-- **React Router** (*routing*)
-- **React Toastify** (*notifications*)
-- **Bootstrap Icons** (*Icons*)
+* **React Router** (*routing*)
+* **React Toastify** (*notifications*)
+* **Bootstrap Icons** (*Icons*)
 
 ## Demo Video
 
@@ -165,12 +165,12 @@ The application includes features such as product browsing, filtering, cart mana
 
 ![Edit Order](./screenshots/EditOrderPage.png)
 
-**Your Addresses Page**
+**User Addresses Page**
 
 * Displays all registered Addresses
 * You can **add new address**
 
-![Your Addresses](./screenshots/YourAddressesPage.png)
+![User Addresses](./screenshots/UserAddressesPage.png)
 
 **ContactUs Page**
 
