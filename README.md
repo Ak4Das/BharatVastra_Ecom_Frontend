@@ -61,7 +61,7 @@ node index.js
 
 ## Demo Video
 
-Watch a walkthrough (5 - 7 minutes) of all major features of this app: **[Loom Video Link](YOUR_VIDEO_LINK_HERE)**
+Watch a walkthrough (11 - 12 minutes) of all major features of this app: **[Loom Video Link](https://drive.google.com/file/d/1UQEPBlmOr_F5YVeomYY4vdej-JCZ5nY4/view?usp=sharing)**
 
 ## Key Features
 
