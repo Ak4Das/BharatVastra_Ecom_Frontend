@@ -34,17 +34,7 @@ export default function CartPage() {
   const [productsInCart, setProductsInCart] = useState([])
 
   useEffect(() => {
-    async function syncFunction() {
-      try {
-        setLoading(true)
-      } catch (error) {
-        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
-          console.error(error)
-        }
-        setIsError(error.message)
-      }
-    }
-    syncFunction()
+    setLoading(true)
   }, [])
 
   useEffect(() => {
@@ -121,6 +111,7 @@ export default function CartPage() {
       : []
   const createOrderInDatabase = { item: uniqueCreateOrderInDatabase }
 
+  // Purpose is to match Cart Items and CreateOrder Products
   const [permission, setPermission] = useState("")
   const [data, setData] = useState([])
   useEffect(() => {
@@ -128,12 +119,7 @@ export default function CartPage() {
       try {
         if (data.length && CreateOrderInDatabase) {
           const createOrder = { products: data, userId }
-          const response = await fetchCreateOrderByUserId(
-            userId,
-            undefined,
-            setIsError,
-          )
-          if (response.length) {
+          if (CreateOrderInDatabase.length) {
             await fetchCreateOrderByUserIdAndUpdate(
               userId,
               createOrder,
@@ -141,7 +127,7 @@ export default function CartPage() {
               setIsError,
             )
           } else {
-            const response = await saveCreateOrder(
+            await saveCreateOrder(
               createOrder,
               undefined,
               setIsError,
@@ -162,7 +148,7 @@ export default function CartPage() {
   }, [data])
 
   const idOfCreateOrderInDatabase =
-    createOrderInDatabase &&
+    CreateOrderInDatabase &&
     createOrderInDatabase.item &&
     createOrderInDatabase.item.map((product) => product.id)
 
@@ -170,7 +156,7 @@ export default function CartPage() {
   below this if statement is only depend on createOrder data not on finalClothsData */
   if (!isRemoveFromCart) {
     if (
-      createOrderInDatabase &&
+      CreateOrderInDatabase &&
       createOrderInDatabase.item &&
       createOrderInDatabase.item.length
     ) {
@@ -205,6 +191,7 @@ export default function CartPage() {
     }
   }
 
+  // unique products in createOrder
   const ProductsInCart =
     user &&
     idOfProductsInCart.length &&
