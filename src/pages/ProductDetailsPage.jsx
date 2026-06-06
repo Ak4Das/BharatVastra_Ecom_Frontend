@@ -60,18 +60,7 @@ export default function ProductDetailsPage() {
   const [similarProducts, setSimilarProducts] = useState([])
 
   useEffect(() => {
-    async function syncFunction() {
-      try {
-        setLoading(true)
-
-      } catch (error) {
-        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
-          console.error(error)
-        }
-        setIsError(error.message)
-      }
-    }
-    syncFunction()
+    setLoading(true)
   }, [])
 
   useEffect(() => {
@@ -83,7 +72,7 @@ export default function ProductDetailsPage() {
             setCreateOrderInDatabase,
             setIsError,
           )
-          const user = await fetchUserById(userId, setUser, setIsError)
+          await fetchUserById(userId, setUser, setIsError)
         }
       } catch (error) {
         if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
@@ -203,7 +192,7 @@ export default function ProductDetailsPage() {
   }
 
   /* Reset the quantity and size value of the product in clothsData 
-  while i enter the page if this product is not added to cart */
+  if this product is not added to cart */
   if (isClothPresentInCart && !isClothPresentInCart.length) {
     product.quantity = quantity
     product.size = size
@@ -557,7 +546,7 @@ export default function ProductDetailsPage() {
             setFreeDelivery(false)
             setUpdated(true)
             const cloth = await fetchClothById(
-              e.target.value,
+              id,
               undefined,
               setIsError,
             )
