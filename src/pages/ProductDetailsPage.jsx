@@ -59,10 +59,12 @@ export default function ProductDetailsPage() {
   const [product, setProduct] = useState(null)
   const [similarProducts, setSimilarProducts] = useState([])
 
+  // Page mounted -> Start loading
   useEffect(() => {
     setLoading(true)
   }, [])
 
+  // Fetch data on every mount or when isUpdated changes
   useEffect(() => {
     async function fetchData() {
       try {
@@ -109,6 +111,7 @@ export default function ProductDetailsPage() {
     fetchData()
   }, [id])
 
+  // Purpose is Product Data + User Cart Data + User Wishlist Data -> Single Final Product Object
   useEffect(() => {
     if (user) {
       const finalProduct = getFinalClothsData([product])
@@ -118,6 +121,7 @@ export default function ProductDetailsPage() {
     }
   }, [user])
 
+  // Remove duplicate products from createOrder
   const uniqueCreateOrderInDatabase =
     CreateOrderInDatabase &&
     CreateOrderInDatabase.reduce((acc, item) => {
