@@ -193,14 +193,6 @@ export default function PaymentMethods() {
                 user.addToCartItems = user.addToCartItems.filter(
                   (item) => item.id !== product.id,
                 )
-                const itemInClothsData = await fetchClothById(
-                  product.id,
-                  undefined,
-                  setIsError,
-                )
-                delete itemInClothsData.addToCart
-                delete itemInClothsData.quantity
-                delete itemInClothsData.size
               }
             } catch (error) {
               if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
