@@ -1,6 +1,6 @@
 import styles from "../style_modules/components_modules/Offcanvas.module.css"
-import crossBtn from "../assets/images/close.png"
 import { useState } from "react"
+import { images } from "../assets/images/images"
 
 export default function Offcanvas({
   setPrice,
@@ -31,8 +31,8 @@ export default function Offcanvas({
   }
   function filterByCategory(e) {
     if (e.target.checked) {
-      productCategory.push(e.target.value)
-      setProductCategory(productCategory)
+      const updatedArray = [...productCategory, e.target.value]
+      setProductCategory(updatedArray)
       setUpdate(true)
     } else {
       setProductCategory(
@@ -42,8 +42,8 @@ export default function Offcanvas({
   }
   function filterByAge(e) {
     if (e.target.checked) {
-      age.push(e.target.value)
-      setAge(age)
+      const updatedArray = [...age, e.target.value]
+      setAge(updatedArray)
       setUpdate(true)
     } else {
       setAge(age.filter((age) => age !== e.target.value))
@@ -71,7 +71,7 @@ export default function Offcanvas({
       >
         {open ? (
           <img
-            src={crossBtn}
+            src={images.closeBtn}
             alt="close button"
             className={`${styles.logo} ${styles.button}`}
             onClick={handleClick}

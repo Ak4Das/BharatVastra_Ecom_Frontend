@@ -378,11 +378,13 @@ export default function WishlistPage() {
             setSearch={setSearch}
             placeHolder="Search Product"
             userDetails={user}
+            search={search}
           />
           <SearchInPage
             margin="ms-3"
             setSearch={setSearch}
             placeHolder="Search Product"
+            search={search}
           />
           <main className="bg-body-secondary pb-3">
             <div className="mx-5">

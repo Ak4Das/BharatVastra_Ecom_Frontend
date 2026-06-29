@@ -14,6 +14,7 @@ export default function searchInPage({
   position = "position-static",
   top = "",
   zIndex = 0,
+  search,
 }) {
   const [input, setInput] = useState("")
   const [categories, setCategories] = useState([])
@@ -30,7 +31,7 @@ export default function searchInPage({
 
   useEffect(() => {
     if (!input) {
-      setSearch && setSearch(input)
+      setSearch && setSearch(typeof search === "string" ? "" : [])
     }
   }, [input])
 
@@ -40,8 +41,23 @@ export default function searchInPage({
     setInput(e.target.value)
   }
 
-  function handleClick() {
-    setSearch && setSearch(input)
+  async function handleClick() {
+    if (typeof search === "object") {
+      const distinctCommonCategories = await fetchDistinctCommonCategories()
+      const searchProducts = input
+        ? Search(distinctCommonCategories, input)
+        : []
+      const commonCategoryList = searchProducts.map((item) => item.product)
+      const uniqueCommonCategoryList = []
+      commonCategoryList.forEach((category) => {
+        if (!uniqueCommonCategoryList.includes(category)) {
+          uniqueCommonCategoryList.push(category)
+        }
+      })
+      setSearch && setSearch(uniqueCommonCategoryList)
+    } else {
+      setSearch && setSearch(input)
+    }
   }
   return (
     <>

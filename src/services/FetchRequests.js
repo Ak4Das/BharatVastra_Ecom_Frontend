@@ -5,6 +5,55 @@ if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
   url = "https://e-commerce-website-backend-sooty.vercel.app"
 }
 
+export async function fetchCloths(params, setFunction, setIsError) {
+  const controller = new AbortController()
+
+  const timerId = setTimeout(() => {
+    controller.abort()
+  }, 10000)
+
+  try {
+    const {
+      mainCategory,
+      commonCategory,
+      price,
+      rating,
+      sortBy,
+      gender,
+      age,
+      search,
+      page,
+      limit,
+    } = params
+
+    const response = await fetch(
+      `${url}/cloth?mainCategory=${mainCategory}&commonCategory=${commonCategory}&price=${price}&rating=${rating}&sortBy=${sortBy}&gender=${gender}&age=${age}&search=${search}&page=${page}&limit=${limit}`,
+      {
+        signal: controller.signal,
+      },
+    )
+
+    clearTimeout(timerId)
+
+    if (!response.ok) {
+      throw new Error("Request failed")
+    }
+
+    const data = await response.json()
+    setFunction && setFunction(data.respondedData)
+    return data
+  } catch (error) {
+    clearTimeout(timerId)
+
+    if (error.name === "AbortError") {
+      setIsError && setIsError("Request timeout")
+      return
+    }
+
+    throw error
+  }
+}
+
 export async function fetchClothById(clothId, setFunction, setIsError) {
   const controller = new AbortController()
 
@@ -38,7 +87,7 @@ export async function fetchClothById(clothId, setFunction, setIsError) {
   }
 }
 
-export async function fetchNewArrivalCloths(setFunction, setIsError) {
+export async function fetchNewArrivalCloths(query, setFunction, setIsError) {
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -46,9 +95,14 @@ export async function fetchNewArrivalCloths(setFunction, setIsError) {
   }, 10000)
 
   try {
-    const response = await fetch(`${url}/cloth/newArrive/true`, {
-      signal: controller.signal,
-    })
+    const { currentPage, itemsPerPage, search } = query
+
+    const response = await fetch(
+      `${url}/cloth/newArrive/true?page=${currentPage}&limit=${itemsPerPage}&search=${search}`,
+      {
+        signal: controller.signal,
+      },
+    )
 
     clearTimeout(timerId)
 
@@ -58,7 +112,7 @@ export async function fetchNewArrivalCloths(setFunction, setIsError) {
 
     const data = await response.json()
     setFunction && setFunction(data.respondedData)
-    return data.respondedData
+    return data
   } catch (error) {
     clearTimeout(timerId)
 
@@ -183,6 +237,7 @@ export async function fetchClothsByCommonCategory(
 
 export async function fetchOfferOnACategory(
   commonCategory,
+  query,
   setFunction,
   setIsError,
 ) {
@@ -193,9 +248,14 @@ export async function fetchOfferOnACategory(
   }, 10000)
 
   try {
-    const response = await fetch(`${url}/cloth/offer/${commonCategory}`, {
-      signal: controller.signal,
-    })
+    const { page, gender, search } = query
+
+    const response = await fetch(
+      `${url}/cloth/offer/${commonCategory}?page=${page}&gender=${gender}&search=${search}`,
+      {
+        signal: controller.signal,
+      },
+    )
 
     clearTimeout(timerId)
 
@@ -205,7 +265,7 @@ export async function fetchOfferOnACategory(
 
     const data = await response.json()
     setFunction && setFunction(data.respondedData)
-    return data.respondedData
+    return data
   } catch (error) {
     clearTimeout(timerId)
 

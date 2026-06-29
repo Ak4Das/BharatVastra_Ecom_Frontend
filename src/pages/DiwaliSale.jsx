@@ -1,21 +1,5 @@
 import styles from "../style_modules/pages_modules/DiwaliSale.module.css"
 import Header from "../components/Header"
-import diwaliDecoration5 from "../assets/images/diwaliDecoration5.png"
-import background2 from "../assets/images/background2.png"
-import saree1 from "../assets/images/saree1.png"
-import offer2 from "../assets/images/offer2.png"
-import menWearCoat2 from "../assets/images/menWearCoat2.png"
-import womenWearLahenga3 from "../assets/images/womenWearLahenga3.png"
-import shoe1 from "../assets/images/shoe1.png"
-import menWearPanjabi1 from "../assets/images/menWearPanjabi1.png"
-import menWearJeans from "../assets/images/menWearJeans.png"
-import ganpati from "../assets/images/ganpati.png"
-import lakshmiMata from "../assets/images/lakshmiMata.png"
-import ghat from "../assets/images/ghat.png"
-import girlHoldDiya1 from "../assets/images/girlHoldDiya1.png"
-import diwaliDecoration11 from "../assets/images/diwaliDecoration11.png"
-import diwaliDecoration12 from "../assets/images/diwaliDecoration12.png"
-import diwaliDecoration13 from "../assets/images/diwaliDecoration13.png"
 import { Link } from "react-router-dom"
 import SearchInPage from "../components/SearchInPage"
 import { useState, useEffect } from "react"
@@ -24,6 +8,7 @@ import DiwaliSaleShimmer from "../shimmers/DiwaliSale.shimmer"
 import Footer from "../components/Footer"
 import GetUserId from "../services/GetClothsData"
 import Error from "../components/Error"
+import { images } from "../assets/images/images"
 
 export default function DiwaliSale() {
   const [loading, setLoading] = useState(false)
@@ -72,18 +57,20 @@ export default function DiwaliSale() {
             placeHolder="Search Product"
             page="diwaliSale"
             userDetails={user}
+            search={search}
           />
           <SearchInPage
             margin="ms-3"
             setSearch={setSearch}
             placeHolder="Search Product"
             page="diwaliSale"
+            search={search}
           />
           <main className="mx-5 my-4">
             <section
               className={`${styles.diwaliSaleSection1}`}
               style={{
-                backgroundImage: `url(${background2})`,
+                backgroundImage: `url(${images.background2})`,
                 backgroundSize: "contain",
               }}
             >
@@ -93,7 +80,7 @@ export default function DiwaliSale() {
               >
                 <h1 className={`${styles.headingText}`}>Happy</h1>
                 <img
-                  src={diwaliDecoration5}
+                  src={images.diwaliDecoration5}
                   style={{ width: "5vw" }}
                   alt="diwaliDecoration"
                 />
@@ -113,7 +100,7 @@ export default function DiwaliSale() {
                             Saree
                           </span>
                           <img
-                            src={offer2}
+                            src={images.offer2}
                             className={`${styles.diwaliSalePageOffer1} d-block img-fluid w-100`}
                             alt="offer"
                           />
@@ -126,7 +113,7 @@ export default function DiwaliSale() {
                         </Link>
                       </div>
                       <img
-                        src={saree1}
+                        src={images.saree1}
                         className={`img-fluid h-100 ${styles.sareeImageInDiwaliSalePage}`}
                         alt="saree"
                       />
@@ -144,7 +131,7 @@ export default function DiwaliSale() {
                             Suit Pant
                           </span>
                           <img
-                            src={offer2}
+                            src={images.offer2}
                             className={`${styles.diwaliSalePageOffer2} d-block img-fluid w-100`}
                             alt="offer"
                           />
@@ -157,7 +144,7 @@ export default function DiwaliSale() {
                         </Link>
                       </div>
                       <img
-                        src={menWearCoat2}
+                        src={images.menWearCoat2}
                         className="img-fluid h-100"
                         alt="menWearCoatImage"
                       />
@@ -175,7 +162,7 @@ export default function DiwaliSale() {
                             Lahenga
                           </span>
                           <img
-                            src={offer2}
+                            src={images.offer2}
                             className={`${styles.diwaliSalePageOffer3} d-block img-fluid w-100`}
                             alt="offer"
                           />
@@ -188,7 +175,7 @@ export default function DiwaliSale() {
                         </Link>
                       </div>
                       <img
-                        src={womenWearLahenga3}
+                        src={images.womenWearLahenga3}
                         className="img-fluid h-100"
                         alt="womenWearLahengaImage"
                       />
@@ -206,7 +193,7 @@ export default function DiwaliSale() {
                             Shoes
                           </span>
                           <img
-                            src={offer2}
+                            src={images.offer2}
                             className={`${styles.diwaliSalePageOffer4} d-block img-fluid w-100`}
                             alt="offer"
                           />
@@ -220,7 +207,7 @@ export default function DiwaliSale() {
                       </div>
                       <div className="text-end">
                         <img
-                          src={shoe1}
+                          src={images.shoe1}
                           className="img-fluid w-75 h-100"
                           alt="shoe"
                         />
@@ -239,7 +226,7 @@ export default function DiwaliSale() {
                             Panjabi
                           </span>
                           <img
-                            src={offer2}
+                            src={images.offer2}
                             className={`${styles.diwaliSalePageOffer5} d-block img-fluid w-100`}
                             alt="offer"
                           />
@@ -252,7 +239,7 @@ export default function DiwaliSale() {
                         </Link>
                       </div>
                       <img
-                        src={menWearPanjabi1}
+                        src={images.menWearPanjabi1}
                         className="img-fluid h-100"
                         alt="menWearPanjabiImage"
                       />
@@ -270,7 +257,7 @@ export default function DiwaliSale() {
                             Jeans
                           </span>
                           <img
-                            src={offer2}
+                            src={images.offer2}
                             className={`${styles.diwaliSalePageOffer6} d-block img-fluid w-100`}
                             alt="offer"
                           />
@@ -283,7 +270,7 @@ export default function DiwaliSale() {
                         </Link>
                       </div>
                       <img
-                        src={menWearJeans}
+                        src={images.menWearJeans}
                         className="img-fluid h-100"
                         alt="menWearJeansImage"
                       />
@@ -297,14 +284,14 @@ export default function DiwaliSale() {
                 <div className="d-flex">
                   <div>
                     <img
-                      src={ganpati}
+                      src={images.ganpati}
                       className="img-fluid w-100"
                       alt="ganpatiImage"
                     />
                   </div>
                   <div>
                     <img
-                      src={lakshmiMata}
+                      src={images.lakshmiMata}
                       className="img-fluid w-100"
                       alt="lakshmiMataImage"
                     />
@@ -313,27 +300,27 @@ export default function DiwaliSale() {
                 <div className="d-flex align-items-end">
                   <div className="w-25">
                     <img
-                      src={diwaliDecoration11}
+                      src={images.diwaliDecoration11}
                       className="img-fluid w-100"
                       alt="diwaliDecoration"
                     />
                   </div>
                   <div className="w-50">
                     <img
-                      src={ghat}
+                      src={images.ghat}
                       className="img-fluid d-block mx-auto w-50 position-relative"
                       style={{ marginBottom: "-4.5vw" }}
                       alt="ghat"
                     />
                     <img
-                      src={diwaliDecoration13}
+                      src={images.diwaliDecoration13}
                       className="img-fluid d-block mx-auto w-75"
                       alt="diwaliDecoration"
                     />
                   </div>
                   <div className="w-25">
                     <img
-                      src={diwaliDecoration12}
+                      src={images.diwaliDecoration12}
                       className="img-fluid w-50"
                       alt="diwaliDecoration"
                     />
@@ -372,7 +359,7 @@ export default function DiwaliSale() {
                 </div>
                 <div className={`${styles.girlHoldDiya1} w-75`}>
                   <img
-                    src={girlHoldDiya1}
+                    src={images.girlHoldDiya1}
                     className="img-fluid d-block ms-auto w-25"
                     alt="girlHoldDiyaImage"
                   />

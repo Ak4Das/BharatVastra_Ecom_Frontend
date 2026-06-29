@@ -349,12 +349,14 @@ export default function CartPage() {
             placeHolder="Search Product"
             page="cartPage"
             userDetails={user}
+            search={search}
           />
           <SearchInPage
             margin="ms-3"
             setSearch={setSearch}
             page="cartPage"
             placeHolder="Search Product"
+            search={search}
           />
           <main className="bg-body-secondary pb-3">
             <div className="container">

@@ -1,10 +1,10 @@
 import styles from "../style_modules/components_modules/Header.module.css"
 import { Link, NavLink } from "react-router-dom"
-import BharatVastra from "../assets/images/BharatVastra.png"
 import { useState } from "react"
 import { useEffect } from "react"
 import { Search } from "../services/Search"
 import { fetchDistinctCommonCategories } from "../services/FetchRequests"
+import { images } from "../assets/images/images"
 
 export default function Header({
   position,
@@ -15,6 +15,7 @@ export default function Header({
   isSearchBarNeeded = true,
   page = "",
   userDetails: user,
+  search,
 }) {
   const [input, setInput] = useState("")
   const [clickedHamburger, setClickedHamburger] = useState(false)
@@ -32,7 +33,7 @@ export default function Header({
 
   useEffect(() => {
     if (!input) {
-      setSearch && setSearch(input)
+      setSearch && setSearch(typeof search === "string" ? "" : [])
     }
   }, [input])
 
@@ -52,8 +53,23 @@ export default function Header({
     setInput(e.target.value)
   }
 
-  function handleClick() {
-    setSearch && setSearch(input)
+  async function handleClick() {
+    if (typeof search === "object") {
+      const distinctCommonCategories = await fetchDistinctCommonCategories()
+      const searchProducts = input
+        ? Search(distinctCommonCategories, input)
+        : []
+      const commonCategoryList = searchProducts.map((item) => item.product)
+      const uniqueCommonCategoryList = []
+      commonCategoryList.forEach((category) => {
+        if (!uniqueCommonCategoryList.includes(category)) {
+          uniqueCommonCategoryList.push(category)
+        }
+      })
+      setSearch && setSearch(uniqueCommonCategoryList)
+    } else {
+      setSearch && setSearch(input)
+    }
   }
 
   return (
@@ -65,7 +81,7 @@ export default function Header({
         <div className="d-flex justify-content-between align-items-center">
           <NavLink className="navbar-brand" to="/">
             <img
-              src={BharatVastra}
+              src={images.BharatVastra}
               alt="BharatVastra"
               style={{ width: "70px" }}
               className={`${styles.BharatVastra}`}

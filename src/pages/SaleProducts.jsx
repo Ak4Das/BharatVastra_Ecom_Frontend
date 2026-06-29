@@ -1,85 +1,97 @@
 import styles from "../style_modules/pages_modules/SaleProducts.module.css"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo, useCallback } from "react"
+import { useParams, Link } from "react-router-dom"
+import { toast } from "react-toastify"
+
 import Header from "../components/Header"
-import { useParams } from "react-router-dom"
-import { Link } from "react-router-dom"
 import RatingBar from "../components/RatingBar"
 import SearchInPage from "../components/SearchInPage"
-import { toast } from "react-toastify"
+import SaleProductsShimmer from "../shimmers/SaleProducts.shimmer.jsx"
+import Footer from "../components/Footer.jsx"
+import Error from "../components/Error.jsx"
+
+import GetUserId from "../services/GetClothsData.js"
 import {
+  fetchOfferOnACategory,
   fetchCreateOrderByUserId,
   fetchCreateOrderByUserIdAndUpdate,
-  fetchOfferOnACategory,
   fetchUserById,
   updateCartItemsInUser,
   updateWishlistItemsInUser,
 } from "../services/FetchRequests.js"
-import SaleProductsShimmer from "../shimmers/SaleProducts.shimmer.jsx"
-import Footer from "../components/Footer.jsx"
-import GetUserId from "../services/GetClothsData.js"
 import { syncUserAndCreateOrder } from "../services/Function.js"
-import Error from "../components/Error.jsx"
 
 export default function SaleProducts() {
-  const [loading, setLoading] = useState(false)
-  const [isError, setIsError] = useState("")
-  const [search, setSearch] = useState("")
   const { commonCategory } = useParams()
-  const [clothsData, setClothsData] = useState([])
-
-  const [gender, setGender] = useState("")
-
   const userId = GetUserId()
-  const [user, setUser] = useState(null)
 
-  const [CreateOrderInDatabase, setCreateOrderInDatabase] = useState(null)
+  const [clothsData, setClothsData] = useState([])
+  const [user, setUser] = useState(null)
+  const [createOrderInDatabase, setCreateOrderInDatabase] = useState(null)
+
+  const [loading, setLoading] = useState(true)
+  const [isError, setIsError] = useState("")
+
+  const [search, setSearch] = useState("")
+  const [gender, setGender] = useState("")
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [isUpdate, setUpdate] = useState(false)
 
   useEffect(() => {
-    async function fetchData() {
+    if (!userId) return
+    async function fetchUserMetadata() {
       try {
-        setLoading(true)
-
-        await fetchOfferOnACategory(
-          commonCategory.toLocaleLowerCase(),
-          setClothsData,
-          setIsError,
-        )
+        await Promise.all([
+          fetchCreateOrderByUserId(
+            userId,
+            setCreateOrderInDatabase,
+            setIsError,
+          ),
+          fetchUserById(userId, setUser, setIsError),
+        ])
+        if (isUpdate) {
+          setUpdate(false)
+        }
       } catch (error) {
         if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
           console.error(error)
         }
-        setIsError(error.message)
       }
     }
-    fetchData()
-  }, [])
-
-  const isMaterial =
-    search !== ""
-      ? clothsData.filter((cloth) => {
-          if (
-            cloth.commonCategory.toLowerCase() === commonCategory.toLowerCase()
-          ) {
-            return cloth.material.toLowerCase().includes(search)
-          }
-        }).length
-        ? true
-        : false
-      : false
+    fetchUserMetadata()
+  }, [userId, isUpdate])
 
   useEffect(() => {
-    if (search !== "" && !isMaterial) {
-      toast("No such product with this material available")
-    }
-  }, [search])
+    async function loadProducts() {
+      try {
+        setLoading(true)
 
-  /* isUpdate useState is used to if user add to cart a item or add to wishlist a item 
-  then variables present on this page will reinitialize */
-  const [isUpdate, setUpdate] = useState(false)
+        const response = await fetchOfferOnACategory(
+          commonCategory.toLowerCase(),
+          { page, gender, search },
+          setClothsData,
+          setIsError,
+        )
+
+        if (response?.pagination) {
+          setTotalPages(response.pagination.totalPages)
+          if (search && response.products?.length === 0) {
+            toast.info("No products with this material available")
+          }
+        }
+      } catch (error) {
+        setIsError(error.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadProducts()
+  }, [commonCategory, page, gender, search])
 
   const uniqueCreateOrderInDatabase =
-    CreateOrderInDatabase && CreateOrderInDatabase.length
-      ? CreateOrderInDatabase[0].products.reduce((acc, item) => {
+    createOrderInDatabase && createOrderInDatabase.length
+      ? createOrderInDatabase[0].products.reduce((acc, item) => {
           if (!acc.length) {
             acc.push(item)
           } else {
@@ -96,7 +108,6 @@ export default function SaleProducts() {
 
   const createOrder = { item: uniqueCreateOrderInDatabase }
 
-  // To fix clothsData for first render of this page
   const finalClothsData = clothsData.map((cloth) => {
     const isClothPresentInCart =
       user && user.addToCartItems.filter((item) => item.id === cloth.id)
@@ -121,24 +132,12 @@ export default function SaleProducts() {
     return cloth
   })
 
-  const filteredByGender =
-    gender === ""
-      ? finalClothsData
-      : finalClothsData.filter((product) => product.gender === gender)
+  // Refactored Add to Cart Logic using Optimistic UI state updates
+  const addToCart = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
 
-  const filterByMaterial =
-    search === ""
-      ? filteredByGender
-      : filteredByGender.filter((product) =>
-          product.material.toLowerCase().includes(search.toLowerCase()),
-        )
-
-  async function addToCart(e) {
     try {
-      // To stop Event Bubbling
-      e.preventDefault()
-      e.stopPropagation()
-
       const promises = []
 
       const isAddedToCart = user.addToCartItems.filter(
@@ -244,12 +243,13 @@ export default function SaleProducts() {
     }
   }
 
-  async function addToWishlist(e) {
-    try {
-      // To stop Event Bubbling
-      e.preventDefault()
-      e.stopPropagation()
+  // Wishlist Logic Optimization
+  const addToWishlist = async (e) => {
+    // To stop Event Bubbling
+    e.preventDefault()
+    e.stopPropagation()
 
+    try {
       const promises = []
 
       const isAddedToWishlist = user.addToWishlistItems.filter(
@@ -347,84 +347,64 @@ export default function SaleProducts() {
     }
   }
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        if (userId) {
-          await fetchCreateOrderByUserId(
-            userId,
-            setCreateOrderInDatabase,
-            setIsError,
-          )
-          await fetchUserById(userId, setUser, setIsError)
-        }
-        if (isUpdate) {
-          setUpdate(false)
-        }
-      } catch (error) {
-        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
-          console.error(error)
-        }
-        setIsError(error.message)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchData()
-  }, [isUpdate])
-
-  if (isError) {
-    return <Error />
-  }
+  if (isError) return <Error />
 
   return (
     <>
-      {loading ? (
-        <SaleProductsShimmer />
-      ) : (
-        <>
-          <Header
-            position="sticky"
-            top={0}
-            zIndex={6}
-            setSearch={setSearch}
-            placeHolder="Search by product Material"
-            userDetails={user}
-          />
-          <SearchInPage
-            margin="ms-3"
-            setSearch={setSearch}
-            placeHolder="Search by product Material"
-          />
-          <main>
-            <div className="mx-5 my-3">
-              <div
-                className={`d-flex justify-content-between ${styles.saleProductFirstSection} mb-3`}
+      <Header
+        position="sticky"
+        top={0}
+        zIndex={6}
+        setSearch={setSearch}
+        search={search}
+        placeHolder="Search by product Material"
+        userDetails={user}
+      />
+      <SearchInPage
+        margin="ms-3"
+        setSearch={setSearch}
+        search={search}
+        placeHolder="Search by product Material"
+      />
+
+      <main>
+        <div className="mx-5 my-3">
+          <div
+            className={`d-flex justify-content-between ${styles.saleProductFirstSection} mb-3`}
+          >
+            <h4 className="my-3 text-secondary">
+              Diwali offer on {commonCategory}
+            </h4>
+            <div style={{ width: "160px" }}>
+              <label
+                htmlFor="gender"
+                className="form-label me-2 fw-bold text-secondary"
               >
-                <h4 className="my-3 text-secondary">
-                  Diwali offer on {commonCategory}
-                </h4>
-                <div className="" style={{ width: "160px" }}>
-                  <label
-                    htmlFor="gender"
-                    className="form-label me-2 fw-bold text-secondary"
-                  >
-                    Gender
-                  </label>
-                  <select
-                    name="gender"
-                    id="gender"
-                    className="py-1 px-2 rounded fw-medium text-secondary"
-                    onChange={(e) => setGender(e.target.value)}
-                  >
-                    <option value="">All</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                  </select>
-                </div>
-              </div>
+                Gender
+              </label>
+              <select
+                name="gender"
+                id="gender"
+                value={gender}
+                className="py-1 px-2 rounded fw-medium text-secondary"
+                onChange={(e) => {
+                  setGender(e.target.value)
+                  setPage(1)
+                }}
+              >
+                <option value="">All</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </div>
+          </div>
+
+          {loading ? (
+            <SaleProductsShimmer />
+          ) : (
+            <>
               <div className="row">
-                {filterByMaterial.map((product) => (
+                {finalClothsData.map((product) => (
                   <div key={product.id} className="col-sm-6 col-xl-4 mb-3">
                     <Link
                       className="text-decoration-none"
@@ -538,11 +518,33 @@ export default function SaleProducts() {
                   </div>
                 ))}
               </div>
-            </div>
-          </main>
-          <Footer />
-        </>
-      )}
+
+              {totalPages > 1 && (
+                <div className="d-flex justify-content-center my-4 gap-2">
+                  <button
+                    className="btn btn-outline-secondary btn-sm"
+                    disabled={page === 1}
+                    onClick={() => setPage((prev) => prev - 1)}
+                  >
+                    Previous
+                  </button>
+                  <span className="align-self-center mx-2 fw-medium text-muted">
+                    Page {page} of {totalPages}
+                  </span>
+                  <button
+                    className="btn btn-outline-secondary btn-sm"
+                    disabled={page === totalPages}
+                    onClick={() => setPage((prev) => prev + 1)}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </main>
+      <Footer />
     </>
   )
 }

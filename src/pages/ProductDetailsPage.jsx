@@ -1,15 +1,12 @@
 import styles from "../style_modules/pages_modules/ProductDetails.module.css"
 import Header from "../components/Header"
-import cashOnDelivery from "../assets/images/cash-on-delivery.png"
 import { useParams } from "react-router-dom"
 import { Link } from "react-router-dom"
 import RatingBar from "../components/RatingBar"
 import { useState } from "react"
-import location from "../assets/images/location.png"
 import { useEffect } from "react"
 import SearchInPage from "../components/SearchInPage"
 import { toast } from "react-toastify"
-import rightArrow from "../assets/images/right-arrow.png"
 import {
   updateClothById,
   fetchCreateOrderByUserId,
@@ -24,6 +21,7 @@ import ProductDetailsShimmer from "../shimmers/ProductDetails.shimmer.jsx"
 import Footer from "../components/Footer.jsx"
 import GetUserId from "../services/GetClothsData.js"
 import Error from "../components/Error.jsx"
+import { images } from "../assets/images/images.js"
 
 export default function ProductDetailsPage() {
   const [loading, setLoading] = useState(false)
@@ -708,12 +706,14 @@ export default function ProductDetailsPage() {
             placeHolder="Search Product"
             page="productDetails"
             userDetails={user}
+            search={search}
           />
           <SearchInPage
             margin="ms-3"
             setSearch={setSearch}
             page="productDetails"
             placeHolder="Search Product"
+            search={search}
           />
           <main className="bg-body-secondary py-3 px-4 py-sm-5 px-sm-5">
             <div
@@ -1284,7 +1284,7 @@ export default function ProductDetailsPage() {
                         }}
                       >
                         <img
-                          src={cashOnDelivery}
+                          src={images.cashOnDelivery}
                           alt="cashOnDeliveryIcon"
                           className="bg-body-tertiary p-2 rounded-circle w-100 img-fluid"
                           style={{ width: "80px" }}
@@ -1647,7 +1647,7 @@ export default function ProductDetailsPage() {
                     >
                       <img
                         className={`${styles.sidebar_deliveryLocation_locationLogo}`}
-                        src={location}
+                        src={images.location}
                         alt="Location icon"
                       />
                       <p
@@ -2203,13 +2203,13 @@ export default function ProductDetailsPage() {
                   className={`${styles.pre_content}`}
                   onClick={preContentClicked}
                 >
-                  <img src={rightArrow} alt="" />
+                  <img src={images.rightArrow} alt="" />
                 </button>
                 <button
                   className={`${styles.nxt_content}`}
                   onClick={nxtContentClicked}
                 >
-                  <img src={rightArrow} alt="" />
+                  <img src={images.rightArrow} alt="" />
                 </button>
                 <div className={`${styles.compareSimilarItemsDiv}`}>
                   <table className={`${styles.compareSimilarItemsTable}`}>

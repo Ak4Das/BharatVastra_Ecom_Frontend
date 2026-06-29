@@ -1,17 +1,13 @@
 import styles from "../style_modules/pages_modules/UserProfile.module.css"
 import Header from "../components/Header"
-import CameraIcon from "../assets/images/camera.png"
-import crossBtn from "../assets/images/cross.png"
 import { useState, useEffect } from "react"
-import DeliveryBox from "../assets/images/deliveryBox.jpg"
-import AddressIcon from "../assets/images/address.png"
-import Support from "../assets/images/support.png"
 import { Link } from "react-router-dom"
 import { fetchUserById, updateUser } from "../services/FetchRequests"
 import UserProfileShimmer from "../shimmers/UserProfile.shimmer"
 import Footer from "../components/Footer"
 import GetUserId from "../services/GetClothsData"
 import Error from "../components/Error"
+import { images } from "../assets/images/images"
 
 export default function UserProfile() {
   const [loading, setLoading] = useState(false)
@@ -178,7 +174,7 @@ export default function UserProfile() {
                 title="Change Profile Image"
               >
                 <img
-                  src={CameraIcon}
+                  src={images.CameraIcon}
                   alt="CameraIcon"
                   className="img-fluid w-100"
                   onClick={setVisibility}
@@ -201,7 +197,7 @@ export default function UserProfile() {
                     </h2>
                     <button className="border border-0 position-absolute end-0 top-0 bg-light">
                       <img
-                        src={crossBtn}
+                        src={images.crossBtn}
                         alt="crossBtn"
                         className={`${styles.crossBtnFloatingCard}`}
                         style={{ width: "20px" }}
@@ -298,7 +294,7 @@ export default function UserProfile() {
                   className={`card align-items-center gap-2 ${styles.cardInUserProfilePage} p-2`}
                 >
                   <img
-                    src={DeliveryBox}
+                    src={images.DeliveryBox}
                     alt="deliveryBox"
                     className=""
                     style={{ width: "150px" }}
@@ -317,7 +313,7 @@ export default function UserProfile() {
                   className={`card align-items-center gap-3 ${styles.cardInUserProfilePage} p-2`}
                 >
                   <img
-                    src={AddressIcon}
+                    src={images.AddressIcon}
                     alt="addressIcon"
                     className=""
                     style={{ width: "100px" }}
@@ -336,7 +332,7 @@ export default function UserProfile() {
                   className={`card align-items-center gap-3 ${styles.cardInUserProfilePage} p-2`}
                 >
                   <img
-                    src={Support}
+                    src={images.Support}
                     alt="support"
                     className="ms-3"
                     style={{ width: "80px" }}

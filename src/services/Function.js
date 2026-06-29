@@ -9,10 +9,8 @@ import {
 export async function syncUserAndCreateOrder(obj) {
   try {
     const { userId, productId, setIsError, action, rejectedRequests } = obj
-    console.log("object")
     const createOrder = await fetchCreateOrderByUserId(userId)
     const user = await fetchUserById(userId)
-    console.log(user)
     if (createOrder?.length && user) {
       const createOrderItems = createOrder[0].products
       const idOfCreateOrderItems = createOrderItems.map((item) => item.id)

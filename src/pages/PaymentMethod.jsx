@@ -1,10 +1,7 @@
 import styles from "../style_modules/pages_modules/PaymentMethod.module.css"
 import Header from "../components/Header"
 import { Link } from "react-router-dom"
-import Plus from "../assets/images/plus.png"
-import Card from "../assets/images/card.png"
 import { useState } from "react"
-import Cross from "../assets/images/cross.png"
 import RatingBar from "../components/RatingBar"
 import { toast } from "react-toastify"
 import { useEffect } from "react"
@@ -22,6 +19,7 @@ import PaymentMethodShimmer from "../shimmers/PaymentMethod.shimmer.jsx"
 import Footer from "../components/Footer.jsx"
 import GetUserId from "../services/GetClothsData.js"
 import Error from "../components/Error.jsx"
+import { images } from "../assets/images/images.js"
 
 export default function PaymentMethods() {
   const [loading, setLoading] = useState(false)
@@ -752,7 +750,7 @@ export default function PaymentMethods() {
                                 className={`${styles.addCardBtn} ${styles.cursor_pointer}`}
                               >
                                 <img
-                                  src={Plus}
+                                  src={images.Plus}
                                   alt="plusIcon"
                                   className="img-fluid bg-white p-1"
                                   style={{ width: "20px" }}
@@ -762,7 +760,7 @@ export default function PaymentMethods() {
                                 />
                               </Link>
                               <img
-                                src={Card}
+                                src={images.Card}
                                 alt="cardIcon"
                                 style={{ width: "30px" }}
                                 className={`${styles.AtmCardImg} ${styles.cursor_pointer}`}
@@ -801,7 +799,7 @@ export default function PaymentMethods() {
                                 Add a new credit or debit card
                               </h5>
                               <img
-                                src={Cross}
+                                src={images.Cross}
                                 alt="crossIcon"
                                 className={`img-fluid ${styles.floatingCardHeaderCrossBtn} ${styles.cursor_pointer}`}
                                 style={{ width: "15px" }}

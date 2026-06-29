@@ -6,36 +6,6 @@ import "bootstrap-icons/font/bootstrap-icons.css"
 import Header from "./components/Header"
 import { Link } from "react-router-dom"
 import { useState } from "react"
-import BharatVastra from "./assets/images/BharatVastra.png"
-import JHALAR from "./assets/images/jhalar.png"
-import DEEPAK from "./assets/images/deepak.png"
-import backgroundImage from "./assets/images/backgroundImage.png"
-import LakshmiMaaAndGaneshJi from "./assets/images/LakshmiMaaAndGaneshJi.png"
-import LINE from "./assets/images/line.png"
-import saree1 from "./assets/images/saree1.png"
-import saree2 from "./assets/images/saree2.png"
-import diwaliDecoration1 from "./assets/images/diwaliDecoration1.png"
-import diwaliDecoration2 from "./assets/images/diwaliDecoration2.png"
-import diwaliDecoration3 from "./assets/images/diwaliDecoration3.png"
-import diwaliDecoration7 from "./assets/images/diwaliDecoration7.png"
-import diwaliDecoration8 from "./assets/images/diwaliDecoration8.png"
-import diwaliDecoration9 from "./assets/images/diwaliDecoration9.png"
-import diwaliDecoration10 from "./assets/images/diwaliDecoration10.png"
-import diwaliDecoration13 from "./assets/images/diwaliDecoration13.png"
-import diwaliDecoration14 from "./assets/images/diwaliDecoration14.png"
-import diwaliDecoration15 from "./assets/images/diwaliDecoration15.png"
-import offer from "./assets/images/offer.png"
-import offer2 from "./assets/images/offer2.png"
-import offer3 from "./assets/images/offer3.png"
-import menWearCoat1 from "./assets/images/menWearCoat1.png"
-import menWearCoat2 from "./assets/images/menWearCoat2.png"
-import menWearCoat3 from "./assets/images/menWearCoat3.png"
-import womenWearLahenga1 from "./assets/images/womenWearLahenga1.png"
-import womenWearLahenga2 from "./assets/images/womenWearLahenga2.png"
-import womenWearLahenga3 from "./assets/images/womenWearLahenga3.png"
-import shoe1 from "./assets/images/shoe1.png"
-import goldenRibbon from "./assets/images/goldenRibbon.png"
-import menWearShoe from "./assets/images/menWearShoe.png"
 import SearchInPage from "./components/SearchInPage"
 import { useEffect } from "react"
 import { fetchAllCategories, fetchUserById } from "./services/FetchRequests.js"
@@ -43,6 +13,7 @@ import AppShimmer from "./shimmers/App.shimmer.jsx"
 import Footer from "./components/Footer.jsx"
 import GetUserId from "./services/GetClothsData.js"
 import Error from "./components/Error.jsx"
+import { images } from "./assets/images/images.js"
 
 export default function App() {
   const [loading, setLoading] = useState(false)
@@ -95,7 +66,11 @@ export default function App() {
           className="d-flex flex-column align-items-center justify-content-center"
           style={{ height: "100vh" }}
         >
-          <img src={BharatVastra} alt="BharatVastra" className="img-fluid" />
+          <img
+            src={images.BharatVastra}
+            alt="BharatVastra"
+            className="img-fluid"
+          />
         </div>
       ) : (
         <>
@@ -110,11 +85,13 @@ export default function App() {
                 setSearch={setSearch}
                 placeHolder="Search Product"
                 userDetails={user}
+                search={search}
               />
               <SearchInPage
                 margin="ms-3"
                 setSearch={setSearch}
                 placeHolder="Search Product"
+                search={search}
               />
               <div
                 className="alert alert-success alert-dismissible fade show mt-3"
@@ -179,7 +156,7 @@ export default function App() {
                         <div
                           className="slide1"
                           style={{
-                            backgroundImage: `url(${backgroundImage})`,
+                            backgroundImage: `url(${images.backgroundImage})`,
                             backgroundSize: "cover",
                             maxHeight: "800px",
                             height: "78.6vw",
@@ -193,7 +170,7 @@ export default function App() {
                             <img
                               className={`d-block ${styles.jhalarImage}`}
                               style={{ width: "25vw" }}
-                              src={JHALAR}
+                              src={images.JHALAR}
                               alt="jhalar"
                             />
                           </div>
@@ -214,7 +191,7 @@ export default function App() {
                             <img
                               className={`d-block ${styles.deepakImage}`}
                               style={{ width: "28vw" }}
-                              src={DEEPAK}
+                              src={images.DEEPAK}
                               alt="deepak"
                             />
                           </div>
@@ -222,7 +199,7 @@ export default function App() {
                             <img
                               className={`d-block ${styles.deepakImage}`}
                               style={{ width: "28vw" }}
-                              src={DEEPAK}
+                              src={images.DEEPAK}
                               alt="deepak"
                             />
                           </div>
@@ -238,14 +215,14 @@ export default function App() {
                           >
                             <div className="w-50">
                               <img
-                                src={diwaliDecoration2}
+                                src={images.diwaliDecoration2}
                                 className="img-fluid w-75"
                                 alt="diwaliDecoration"
                               />
                             </div>
                             <div className="">
                               <img
-                                src={saree1}
+                                src={images.saree1}
                                 className="img-fluid w-100"
                                 alt="saree"
                               />
@@ -260,7 +237,7 @@ export default function App() {
                                 UPTO
                               </p>
                               <img
-                                src={offer}
+                                src={images.offer}
                                 className="img-fluid w-100"
                                 alt="offer"
                               />
@@ -268,7 +245,7 @@ export default function App() {
                             <div>
                               <div className={`${styles.diwaliDecoration3}`}>
                                 <img
-                                  src={diwaliDecoration3}
+                                  src={images.diwaliDecoration3}
                                   style={{
                                     width: "5vw",
                                     marginBottom: "-2.2vw",
@@ -280,7 +257,7 @@ export default function App() {
                               </div>
                               <div className={`${styles.diwaliDecoration13}`}>
                                 <img
-                                  src={diwaliDecoration13}
+                                  src={images.diwaliDecoration13}
                                   className="img-fluid w-50"
                                   alt="diwaliDecoration"
                                 />
@@ -299,7 +276,7 @@ export default function App() {
                                 </p>
                                 <div>
                                   <img
-                                    src={offer}
+                                    src={images.offer}
                                     alt="offer"
                                     className="img-fluid w-75"
                                   />
@@ -309,7 +286,7 @@ export default function App() {
                                 className={`${styles.saree2diwaliDecoration1}`}
                               >
                                 <img
-                                  src={diwaliDecoration1}
+                                  src={images.diwaliDecoration1}
                                   className="img-fluid w-75"
                                   alt="diwaliDecoration"
                                 />
@@ -317,7 +294,7 @@ export default function App() {
                             </div>
                             <div className="">
                               <img
-                                src={saree2}
+                                src={images.saree2}
                                 className="img-fluid w-100"
                                 alt="saree"
                               />
@@ -333,7 +310,7 @@ export default function App() {
                           <div className={`${styles.diwaliOfferOnMenSuit}`}>
                             <div className="w-75">
                               <img
-                                src={diwaliDecoration7}
+                                src={images.diwaliDecoration7}
                                 className="img-fluid w-100"
                                 alt="diwaliDecoration"
                               />
@@ -363,21 +340,21 @@ export default function App() {
                           >
                             <div>
                               <img
-                                src={menWearCoat1}
+                                src={images.menWearCoat1}
                                 className="img-fluid w-100"
                                 alt="menWearCoatImage"
                               />
                             </div>
                             <div>
                               <img
-                                src={menWearCoat2}
+                                src={images.menWearCoat2}
                                 className="img-fluid w-100"
                                 alt="menWearCoatImage"
                               />
                             </div>
                             <div>
                               <img
-                                src={menWearCoat3}
+                                src={images.menWearCoat3}
                                 className="img-fluid w-100"
                                 alt="menWearCoatImage"
                               />
@@ -395,14 +372,14 @@ export default function App() {
                           >
                             <div>
                               <img
-                                src={diwaliDecoration15}
+                                src={images.diwaliDecoration15}
                                 className="img-fluid w-50"
                                 alt="jhalar"
                               />
                             </div>
                             <div>
                               <img
-                                src={diwaliDecoration8}
+                                src={images.diwaliDecoration8}
                                 className="img-fluid w-50"
                                 alt="diwaliDecoration"
                               />
@@ -414,14 +391,14 @@ export default function App() {
                           >
                             <div className={`${styles.offer}`}>
                               <img
-                                src={offer2}
+                                src={images.offer2}
                                 className="img-fluid w-100"
                                 alt="offer"
                               />
                             </div>
                             <div className={`${styles.diwaliDecoration3}`}>
                               <img
-                                src={diwaliDecoration9}
+                                src={images.diwaliDecoration9}
                                 style={{ width: "10vw" }}
                                 className="img-fluid"
                                 alt="diwaliDecoration"
@@ -433,14 +410,14 @@ export default function App() {
                           >
                             <div className="w-25 ms-auto">
                               <img
-                                src={diwaliDecoration2}
+                                src={images.diwaliDecoration2}
                                 className={`${styles.diwaliDecoration2} img-fluid w-100`}
                                 alt="diwaliDecoration"
                               />
                             </div>
                             <div className={`${styles.offer2}`}>
                               <img
-                                src={offer2}
+                                src={images.offer2}
                                 className="img-fluid w-50 d-block mx-auto"
                                 alt="offer"
                               />
@@ -448,21 +425,21 @@ export default function App() {
                             <div className="d-flex">
                               <div>
                                 <img
-                                  src={womenWearLahenga1}
+                                  src={images.womenWearLahenga1}
                                   className="img-fluid w-100"
                                   alt="womenWearLahengaImage"
                                 />
                               </div>
                               <div>
                                 <img
-                                  src={womenWearLahenga3}
+                                  src={images.womenWearLahenga3}
                                   className="img-fluid w-100"
                                   alt="womenWearLahengaImage"
                                 />
                               </div>
                               <div>
                                 <img
-                                  src={womenWearLahenga2}
+                                  src={images.womenWearLahenga2}
                                   className="img-fluid w-100"
                                   alt="womenWearLahengaImage"
                                 />
@@ -481,14 +458,14 @@ export default function App() {
                           >
                             <div>
                               <img
-                                src={diwaliDecoration10}
+                                src={images.diwaliDecoration10}
                                 className="img-fluid w-50"
                                 alt="diwaliDecoration"
                               />
                             </div>
                             <div className="">
                               <img
-                                src={diwaliDecoration14}
+                                src={images.diwaliDecoration14}
                                 className="img-fluid w-75"
                                 alt="diwaliDecoration"
                               />
@@ -498,7 +475,7 @@ export default function App() {
                             className={`${styles.menWearShoe} align-self-end`}
                           >
                             <img
-                              src={menWearShoe}
+                              src={images.menWearShoe}
                               className="img-fluid w-100"
                               alt="menWearShoeImage"
                             />
@@ -518,7 +495,7 @@ export default function App() {
                                 </p>
                                 <div className="w-25">
                                   <img
-                                    src={offer3}
+                                    src={images.offer3}
                                     className="img-fluid w-100"
                                     alt="offer"
                                   />
@@ -532,7 +509,7 @@ export default function App() {
                               </div>
                               <div className={`${styles.goldenRibbonCarousel}`}>
                                 <img
-                                  src={goldenRibbon}
+                                  src={images.goldenRibbon}
                                   className="img-fluid w-50"
                                   alt="goldenRibbon"
                                 />
@@ -540,7 +517,7 @@ export default function App() {
                             </div>
                             <div className="text-end">
                               <img
-                                src={shoe1}
+                                src={images.shoe1}
                                 className={`${styles.shoe1} img-fluid`}
                                 alt="shoe"
                               />
@@ -561,14 +538,14 @@ export default function App() {
                             <div className={`${styles.line1}`}>
                               <img
                                 className="d-block w-100"
-                                src={LINE}
+                                src={images.LINE}
                                 alt="line"
                               />
                             </div>
                             <div>
                               <img
                                 className="w-100 img-fluid"
-                                src={LakshmiMaaAndGaneshJi}
+                                src={images.LakshmiMaaAndGaneshJi}
                                 style={{ maxHeight: "410px" }}
                                 alt="lakshmiGaneshaImage"
                               />
@@ -581,7 +558,7 @@ export default function App() {
                             <div className={`${styles.line2}`}>
                               <img
                                 className="d-block w-100"
-                                src={LINE}
+                                src={images.LINE}
                                 alt="line"
                               />
                             </div>

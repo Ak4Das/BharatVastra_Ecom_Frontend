@@ -1,56 +1,107 @@
+import React, { useEffect, useState, useCallback } from "react"
+import { Link } from "react-router-dom"
+import { toast } from "react-toastify"
+
 import styles from "../style_modules/pages_modules/NewArrival.module.css"
 import Header from "../components/Header"
-import { Link } from "react-router-dom"
 import RatingBar from "../components/RatingBar"
 import SearchInPage from "../components/SearchInPage"
-import { useEffect, useState } from "react"
-import { toast } from "react-toastify"
-import { Search } from "../services/Search"
-import {
-  fetchClothById,
-  fetchCreateOrderByUserId,
-  fetchCreateOrderByUserIdAndUpdate,
-  fetchNewArrivalCloths,
-  fetchUserById,
-  updateCartItemsInUser,
-  updateWishlistItemsInUser,
-} from "../services/FetchRequests.js"
 import NewArrivalShimmer from "../shimmers/NewArrival.shimmer.jsx"
 import Footer from "../components/Footer.jsx"
-import GetUserId from "../services/GetClothsData.js"
-import { syncUserAndCreateOrder } from "../services/Function.js"
 import Error from "../components/Error.jsx"
 
-export default function NewArrival() {
-  const [loading, setLoading] = useState(false)
-  const [isError, setIsError] = useState("")
-  const [search, setSearch] = useState("")
-  const [clothsData, setClothsData] = useState([])
+import GetUserId from "../services/GetClothsData.js"
+import { Search } from "../services/Search"
+import {
+  fetchNewArrivalCloths,
+  updateCartItemsInUser,
+  updateWishlistItemsInUser,
+  fetchCreateOrderByUserIdAndUpdate,
+  fetchUserById,
+  fetchClothById,
+  fetchCreateOrderByUserId,
+} from "../services/FetchRequests.js"
+import { syncUserAndCreateOrder } from "../services/Function.js"
 
+const itemsPerPage = 12
+
+export default function NewArrival() {
   const userId = GetUserId()
   const [user, setUser] = useState(null)
 
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState({})
+  const [isError, setIsError] = useState("")
+  const [search, setSearch] = useState([])
+
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+
   const [CreateOrderInDatabase, setCreateOrderInDatabase] = useState(null)
+  const [isUpdate, setUpdate] = useState(false)
 
   useEffect(() => {
     async function fetchData() {
       try {
-        setLoading(true)
-
-        await fetchNewArrivalCloths(setClothsData, setIsError)
+        if (userId) {
+          await fetchCreateOrderByUserId(
+            userId,
+            setCreateOrderInDatabase,
+            setIsError,
+          )
+          const user = await fetchUserById(userId, setUser, setIsError)
+        }
+        if (isUpdate) {
+          setUpdate(false)
+        }
       } catch (error) {
         if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
           console.error(error)
         }
         setIsError(error.message)
+      } finally {
+        setLoading(false)
       }
     }
     fetchData()
-  }, [])
+  }, [isUpdate])
 
-  /* isUpdate useState is used to if user add to cart a item or add to wishlist a item 
-  then variables present on this page will reinitialize */
-  const [isUpdate, setUpdate] = useState(false)
+  const loadProducts = useCallback(
+    async (currentPage, search) => {
+      try {
+        setLoading(true)
+
+        const query = {
+          currentPage,
+          itemsPerPage,
+          search: search.join(","),
+        }
+
+        const response = await fetchNewArrivalCloths(
+          query,
+          setProducts,
+          setIsError,
+        )
+
+        if (response) {
+          setTotalPages(response.pagination?.totalPages || 1)
+        }
+      } catch (error) {
+        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+          console.error("Fetch Error: ", error)
+        }
+        setIsError(error.message || "Failed to load products")
+      } finally {
+        setLoading(false)
+      }
+    },
+    [userId],
+  )
+
+  useEffect(() => {
+    loadProducts(currentPage, search)
+  }, [currentPage, search, loadProducts])
 
   const uniqueCreateOrderInDatabase =
     CreateOrderInDatabase && CreateOrderInDatabase.length
@@ -71,58 +122,15 @@ export default function NewArrival() {
 
   const createOrder = { item: uniqueCreateOrderInDatabase }
 
-  // To fix clothsData for first render of this page
-  const finalClothsData = clothsData.map((cloth) => {
-    const isClothPresentInCart =
-      user && user.addToCartItems.filter((item) => item.id === cloth.id)
-    if (isClothPresentInCart && isClothPresentInCart.length) {
-      cloth.addToCart = true
-      cloth.quantity = isClothPresentInCart[0].quantity
-        ? isClothPresentInCart[0].quantity
-        : 1
-      cloth.size = isClothPresentInCart[0].size
-        ? isClothPresentInCart[0].size
-        : ""
-    } else {
-      delete cloth.addToCart
-    }
-    const isClothPresentInWishlist =
-      user && user.addToWishlistItems.filter((item) => item.id === cloth.id)
-    if (isClothPresentInWishlist && isClothPresentInWishlist.length) {
-      cloth.addToWishList = true
-    } else {
-      delete cloth.addToWishList
-    }
-    return cloth
-  })
+  const handleAddToCart = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
 
-  const searchProducts = search ? Search(finalClothsData, search) : []
+    const productId = e.target.value
+    setActionLoading((prev) => ({ ...prev, [productId]: true }))
 
-  const isCloth = searchProducts.length
-    ? searchProducts.length
-      ? true
-      : false
-    : false
-
-  useEffect(() => {
-    if (search !== "" && !isCloth) {
-      toast("No such product available")
-    }
-  }, [search])
-
-  const finalFilteredProducts = search
-    ? finalClothsData.filter((product) => {
-        const cloth = searchProducts.filter((item) => item.id === product.id)
-        return cloth.length
-      })
-    : finalClothsData
-
-  async function addToCart(e) {
     try {
-      // To stop Event Bubbling
-      e.preventDefault()
-      e.stopPropagation()
-
+      // debugger
       const promises = []
 
       const isAddedToCart = user.addToCartItems.filter(
@@ -224,22 +232,25 @@ export default function NewArrival() {
         console.error(error)
       }
       setIsError(error.message)
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [productId]: false }))
     }
   }
 
-  async function addToWishlist(e) {
-    try {
-      // To stop Event Bubbling
-      e.preventDefault()
-      e.stopPropagation()
+  const handleAddToWishlist = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
 
+    const productId = e.target.value
+    setActionLoading((prev) => ({ ...prev, [`wish-${productId}`]: true }))
+
+    try {
       const promises = []
 
       const isAddedToWishlist = user.addToWishlistItems.find(
         (item) => item.id === Number(e.target.value),
       )
       if (!isAddedToWishlist) {
-        // Update user in Database
         user.addToWishlistItems.push({ id: Number(e.target.value) })
         promises.push({
           name: "user",
@@ -326,184 +337,235 @@ export default function NewArrival() {
         console.error(error)
       }
       setIsError(error.message)
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [`wish-${productId}`]: false }))
     }
   }
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        if (userId) {
-          await fetchCreateOrderByUserId(
-            userId,
-            setCreateOrderInDatabase,
-            setIsError,
-          )
-          const user = await fetchUserById(userId, setUser, setIsError)
-        }
-        if (isUpdate) {
-          setUpdate(false)
-        }
-      } catch (error) {
-        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
-          console.error(error)
-        }
-        setIsError(error.message)
-      } finally {
-        setLoading(false)
-      }
+  const finalProducts = products.map((cloth) => {
+    const isClothPresentInCart =
+      user && user.addToCartItems.filter((item) => item.id === cloth.id)
+    if (isClothPresentInCart && isClothPresentInCart.length) {
+      cloth.addToCart = true
+      cloth.quantity = isClothPresentInCart[0].quantity
+        ? isClothPresentInCart[0].quantity
+        : 1
+      cloth.size = isClothPresentInCart[0].size
+        ? isClothPresentInCart[0].size
+        : ""
+    } else {
+      delete cloth.addToCart
     }
-    fetchData()
-  }, [isUpdate])
+    const isClothPresentInWishlist =
+      user && user.addToWishlistItems.filter((item) => item.id === cloth.id)
+    if (isClothPresentInWishlist && isClothPresentInWishlist.length) {
+      cloth.addToWishList = true
+    } else {
+      delete cloth.addToWishList
+    }
+    return cloth
+  })
 
-  if (isError) {
-    return <Error />
-  }
+  if (isError) return <Error />
 
   return (
     <>
-      {loading ? (
-        <NewArrivalShimmer />
-      ) : (
-        <>
-          <Header
-            position="static"
-            top="auto"
-            zIndex="auto"
-            setSearch={setSearch}
-            placeHolder="Search Product"
-            userDetails={user}
-          />
-          <SearchInPage
-            margin="ms-3"
-            setSearch={setSearch}
-            placeHolder="Search Product"
-          />
-          <main className="mx-5 my-3">
-            <h2 className="my-3 text-secondary">New Arrival</h2>
-            <div className="">
-              <div className="row">
-                {finalFilteredProducts.map((product) => (
-                  <div
-                    key={product.id}
-                    className="col-sm-6 col-xl-4 col-xxl-3 mb-3"
+      <Header
+        position="static"
+        top="auto"
+        zIndex="auto"
+        setSearch={setSearch}
+        placeHolder="Search Product"
+        userDetails={user}
+        search={search}
+      />
+      <SearchInPage
+        margin="ms-3"
+        setSearch={setSearch}
+        placeHolder="Search Product"
+        search={search}
+      />
+
+      <main className="mx-5 my-3">
+        <h2 className="my-3 text-secondary">New Arrivals</h2>
+
+        {loading ? (
+          <NewArrivalShimmer />
+        ) : products.length === 0 ? (
+          <div className="text-center my-5">
+            <h4>No products found matching your description.</h4>
+          </div>
+        ) : (
+          <>
+            <div className="row">
+              {finalProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className="col-sm-6 col-xl-4 col-xxl-3 mb-3"
+                >
+                  <Link
+                    className="text-decoration-none"
+                    to={`/productDetails/${product.id}`}
                   >
-                    <Link
-                      className="text-decoration-none"
-                      to={`/productDetails/${product.id}`}
-                    >
-                      <div className={`card ${styles.productCard}`}>
-                        <div className={`${styles.ProductImageContainer}`}>
-                          <img
-                            src={product.url}
-                            className={`img-fluid ${styles.listProductImage}`}
-                            style={{ height: "300px" }}
-                            alt="productImage"
-                          />
-                        </div>
-                        <div className="card-body d-flex flex-column justify-content-between w-100">
-                          <p
-                            id="name"
-                            className={`my-0 lh-sm ${styles.listProductName}`}
+                    <div className={`card ${styles.productCard}`}>
+                      <div className={`${styles.ProductImageContainer}`}>
+                        <img
+                          src={product.url}
+                          className={`img-fluid ${styles.listProductImage}`}
+                          style={{ height: "300px" }}
+                          alt="productImage"
+                        />
+                      </div>
+                      <div className="card-body d-flex flex-column justify-content-between w-100">
+                        <p
+                          id="name"
+                          className={`my-0 lh-sm ${styles.listProductName}`}
+                        >
+                          <span className="badge text-bg-success me-1">
+                            New
+                          </span>
+                          {product.name.length > 61
+                            ? product.name.slice(0, 60).concat("...")
+                            : product.name}
+                        </p>
+                        <div className="d-flex align-items-end">
+                          <RatingBar rating={product.rating} />
+                          <span
+                            style={{ fontSize: "15px" }}
+                            className={`ms-1 ${styles.rating_listingPage}`}
                           >
-                            <span className="badge text-bg-success me-1">
-                              New
-                            </span>
-                            {product.name.length > 61
-                              ? product.name.slice(0, 60).concat("...")
-                              : product.name}
+                            {product.rating}
+                          </span>
+                        </div>
+                        <div>
+                          <p className={`${styles.discount} my-0`}>
+                            <b>₹</b>
+                            {(
+                              product.price -
+                              (product.price *
+                                Number(product.discount.replace("%", ""))) /
+                                100
+                            ).toFixed(1)}
+                            (-{product.discount})
                           </p>
-                          <div className="d-flex align-items-end">
-                            <RatingBar rating={product.rating} />
-                            <span
-                              style={{ fontSize: "15px" }}
-                              className={`ms-1 ${styles.rating_listingPage}`}
-                            >
-                              {product.rating}
-                            </span>
+                          <small
+                            id="M.R.P."
+                            className="text-decoration-line-through"
+                          >
+                            M.R.P. ₹{product.price}
+                          </small>
+                        </div>
+                        <div>
+                          <div>
+                            {!user ? (
+                              <button
+                                className={`btn btn-secondary w-100 mb-1 ${styles.addToCart}`}
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  toast("Please login to your account")
+                                }}
+                              >
+                                {product.addToCart
+                                  ? "Added To Cart"
+                                  : "Add To cart"}
+                              </button>
+                            ) : (
+                              <button
+                                value={product.id}
+                                className={`btn btn-secondary w-100 mb-1 ${styles.addToCart}`}
+                                onClick={handleAddToCart}
+                              >
+                                {product.addToCart
+                                  ? "Added To Cart"
+                                  : "Add To cart"}
+                              </button>
+                            )}
                           </div>
                           <div>
-                            <p className={`${styles.discount} my-0`}>
-                              <b>₹</b>
-                              {(
-                                product.price -
-                                (product.price *
-                                  Number(product.discount.replace("%", ""))) /
-                                  100
-                              ).toFixed(1)}
-                              (-{product.discount})
-                            </p>
-                            <small
-                              id="M.R.P."
-                              className="text-decoration-line-through"
-                            >
-                              M.R.P. ₹{product.price}
-                            </small>
-                          </div>
-                          <div>
-                            <div>
-                              {!user ? (
-                                <button
-                                  className={`btn btn-secondary w-100 mb-1 ${styles.addToCart}`}
-                                  onClick={(e) => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                    toast("Please login to your account")
-                                  }}
-                                >
-                                  {product.addToCart
-                                    ? "Added To Cart"
-                                    : "Add To cart"}
-                                </button>
-                              ) : (
-                                <button
-                                  value={product.id}
-                                  className={`btn btn-secondary w-100 mb-1 ${styles.addToCart}`}
-                                  onClick={addToCart}
-                                >
-                                  {product.addToCart
-                                    ? "Added To Cart"
-                                    : "Add To cart"}
-                                </button>
-                              )}
-                            </div>
-                            <div>
-                              {!user ? (
-                                <button
-                                  className={`btn btn-outline-secondary w-100 ${styles.saveToWishlist}`}
-                                  onClick={(e) => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                    toast("Please login to your account")
-                                  }}
-                                >
-                                  {product.addToWishList
-                                    ? "Added To Wishlist"
-                                    : "Save To Wishlist"}
-                                </button>
-                              ) : (
-                                <button
-                                  value={product.id}
-                                  className={`btn btn-outline-secondary w-100 ${styles.saveToWishlist}`}
-                                  onClick={addToWishlist}
-                                >
-                                  {product.addToWishList
-                                    ? "Added To Wishlist"
-                                    : "Save To Wishlist"}
-                                </button>
-                              )}
-                            </div>
+                            {!user ? (
+                              <button
+                                className={`btn btn-outline-secondary w-100 ${styles.saveToWishlist}`}
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  toast("Please login to your account")
+                                }}
+                              >
+                                {product.addToWishList
+                                  ? "Added To Wishlist"
+                                  : "Save To Wishlist"}
+                              </button>
+                            ) : (
+                              <button
+                                value={product.id}
+                                className={`btn btn-outline-secondary w-100 ${styles.saveToWishlist}`}
+                                onClick={handleAddToWishlist}
+                              >
+                                {product.addToWishList
+                                  ? "Added To Wishlist"
+                                  : "Save To Wishlist"}
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
-                    </Link>
-                  </div>
-                ))}
-              </div>
+                    </div>
+                  </Link>
+                </div>
+              ))}
             </div>
-          </main>
-          <Footer />
-        </>
-      )}
+
+            {totalPages > 1 && (
+              <nav
+                aria-label="Product dynamic pagination layout"
+                className="d-flex justify-content-center my-4"
+              >
+                <ul className="pagination">
+                  <li
+                    className={`page-item ${currentPage === 1 ? "disabled" : ""}`}
+                  >
+                    <button
+                      className="page-link"
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.max(prev - 1, 1))
+                      }
+                    >
+                      Previous
+                    </button>
+                  </li>
+                  {[...Array(totalPages).keys()].map((num) => (
+                    <li
+                      key={num + 1}
+                      className={`page-item ${currentPage === num + 1 ? "active" : ""}`}
+                    >
+                      <button
+                        className="page-link"
+                        onClick={() => setCurrentPage(num + 1)}
+                      >
+                        {num + 1}
+                      </button>
+                    </li>
+                  ))}
+                  <li
+                    className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}
+                  >
+                    <button
+                      className="page-link"
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                      }
+                    >
+                      Next
+                    </button>
+                  </li>
+                </ul>
+              </nav>
+            )}
+          </>
+        )}
+      </main>
+      <Footer />
     </>
   )
 }
