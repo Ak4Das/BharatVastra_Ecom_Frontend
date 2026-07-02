@@ -625,11 +625,10 @@ export default function ProductListingPage() {
             </div>
           )}
 
-          {/* Clean Industry-Standard Pagination Controls */}
           {!loading && totalPages > 1 && (
             <div className="d-flex justify-content-center align-items-center gap-3 mt-4">
               <button
-                className="btn btn-sm btn-outline-primary"
+                className="btn btn-sm btn-outline-secondary"
                 onClick={() => setPage((p) => Math.max(p - 1, 1))}
                 disabled={page === 1}
               >
@@ -639,7 +638,7 @@ export default function ProductListingPage() {
                 Page {page} of {totalPages}
               </span>
               <button
-                className="btn btn-sm btn-outline-primary"
+                className="btn btn-sm btn-outline-secondary"
                 onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
                 disabled={page === totalPages}
               >

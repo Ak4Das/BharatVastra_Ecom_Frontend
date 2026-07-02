@@ -516,51 +516,28 @@ export default function NewArrival() {
               ))}
             </div>
 
-            {totalPages > 1 && (
-              <nav
-                aria-label="Product dynamic pagination layout"
-                className="d-flex justify-content-center my-4"
-              >
-                <ul className="pagination">
-                  <li
-                    className={`page-item ${currentPage === 1 ? "disabled" : ""}`}
-                  >
-                    <button
-                      className="page-link"
-                      onClick={() =>
-                        setCurrentPage((prev) => Math.max(prev - 1, 1))
-                      }
-                    >
-                      Previous
-                    </button>
-                  </li>
-                  {[...Array(totalPages).keys()].map((num) => (
-                    <li
-                      key={num + 1}
-                      className={`page-item ${currentPage === num + 1 ? "active" : ""}`}
-                    >
-                      <button
-                        className="page-link"
-                        onClick={() => setCurrentPage(num + 1)}
-                      >
-                        {num + 1}
-                      </button>
-                    </li>
-                  ))}
-                  <li
-                    className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}
-                  >
-                    <button
-                      className="page-link"
-                      onClick={() =>
-                        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                      }
-                    >
-                      Next
-                    </button>
-                  </li>
-                </ul>
-              </nav>
+            {!loading && totalPages > 1 && (
+              <div className="d-flex justify-content-center align-items-center gap-3 mt-4">
+                <button
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </button>
+                <span className="text-muted small">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(p + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </button>
+              </div>
             )}
           </>
         )}
