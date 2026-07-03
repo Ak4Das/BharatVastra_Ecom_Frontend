@@ -1,10 +1,14 @@
 import styles from "../style_modules/pages_modules/PaymentMethod.module.css"
-import Header from "../components/Header"
+import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
-import { useState } from "react"
-import RatingBar from "../components/RatingBar"
 import { toast } from "react-toastify"
-import { useEffect } from "react"
+import Header from "../components/Header"
+import RatingBar from "../components/RatingBar"
+import Footer from "../components/Footer.jsx"
+import Error from "../components/Error.jsx"
+import PaymentMethodShimmer from "../shimmers/PaymentMethod.shimmer.jsx"
+import GetUserId from "../services/GetClothsData.js"
+import { images } from "../assets/images/images.js"
 import {
   fetchCreateOrderByUserId,
   fetchCreateOrderByUserIdAndUpdate,
@@ -15,57 +19,33 @@ import {
   fetchCreateOrderByUserIdAndDelete,
   fetchClothById,
 } from "../services/FetchRequests.js"
-import PaymentMethodShimmer from "../shimmers/PaymentMethod.shimmer.jsx"
-import Footer from "../components/Footer.jsx"
-import GetUserId from "../services/GetClothsData.js"
-import Error from "../components/Error.jsx"
-import { images } from "../assets/images/images.js"
 
 export default function PaymentMethods() {
   const [loading, setLoading] = useState(false)
   const [isError, setIsError] = useState("")
 
-  /* isCard useState is used only to set background color of card option if user will select 
-  card option for payment */
   const [isCard, setIsCard] = useState(false)
-
-  /* isNetBanking useState is used only to set background color of Net Banking option 
-  if user will select Net Banking option for payment */
   const [isNetBanking, setIsNetBanking] = useState(false)
-
-  /* isCashOnDelivery is used only to know that user select cash on delivery option or not 
-  if yes then set background color of cash on delivery option, add COD charge etc.  */
   const [isCashOnDelivery, setIsCashOnDelivery] = useState(false)
-
-  /* isVisible useState is used only to manage if user select card option for payment 
-  then only he/she can see the Add a new credit or debit card option */
   const [isVisible, setVisible] = useState(false)
-
-  /* showCard useState is used only to if user wants to add new card then the floating form to 
-  add a new credit or debit card will appear on the page */
   const [showCard, setShowCard] = useState(false)
-
-  // paymentMethod useState is used only to retain the payment option which user was selected
   const [paymentMethod, setPaymentMethod] = useState("")
+  const [isPaymentMethodSelected, selectPaymentMethod] = useState(false)
 
-  /* isUpdated useState is used to rerender the page if quantity will change 
-  to update the variables present on this page */
   const [updated, setUpdated] = useState(false)
+  const [user, setUser] = useState(null)
+  const [orders, setOrders] = useState([])
+  const [CreateOrderInDatabase, setCreateOrderInDatabase] = useState(null)
+  const [Products, setProducts] = useState([])
+  const [isOrderPlaced, setIsOrderPlaced] = useState(false)
+  const [coupon, setCoupon] = useState("")
+  const [editItems, setEditItems] = useState(false)
 
   const userId = GetUserId()
 
-  const [user, setUser] = useState(null)
-
-  const address =
-    user &&
-    user.address.length !== 0 &&
-    user.address.find((address) => address.selected)
-
-  const [orders, setOrders] = useState([])
-
-  const [isPaymentMethodSelected, selectPaymentMethod] = useState(false)
-
-  const [CreateOrderInDatabase, setCreateOrderInDatabase] = useState(null)
+  const address = user?.address?.length
+    ? user.address.find((addr) => addr.selected)
+    : null
 
   const uniqueCreateOrderInDatabase =
     CreateOrderInDatabase &&
@@ -83,90 +63,227 @@ export default function PaymentMethods() {
     }, [])
   const createOrderInDatabase = { item: uniqueCreateOrderInDatabase }
 
-  async function updateAllItems(data) {
-    try {
-      const createOrder = { products: data, userId }
-      await fetchCreateOrderByUserIdAndUpdate(
-        userId,
-        createOrder,
-        undefined,
-        setIsError,
-      )
-      setUpdated(true)
-    } catch (error) {
-      throw error
+  useEffect(() => {
+    if (uniqueCreateOrderInDatabase?.length && !Products.length) {
+      setProducts(uniqueCreateOrderInDatabase)
     }
+  }, [CreateOrderInDatabase])
+
+  async function updateAllItems(data) {
+    const createOrder = { products: data, userId }
+    await fetchCreateOrderByUserIdAndUpdate(
+      userId,
+      createOrder,
+      undefined,
+      setIsError,
+    )
+    setUpdated(true)
   }
 
   async function removeAllItemsFromCreateOrder() {
-    try {
-      const result = await fetchCreateOrderByUserIdAndDelete(
-        userId,
-        undefined,
-        setIsError,
-      )
-      setUpdated(true)
-      return result
-    } catch (error) {
-      throw error
-    }
+    const result = await fetchCreateOrderByUserIdAndDelete(
+      userId,
+      undefined,
+      setIsError,
+    )
+    setUpdated(true)
+    return result
   }
 
   async function updateCartItems(id, items) {
-    try {
-      await updateCartItemsInUser(id, items, undefined, setIsError)
-      setUpdated(true)
-    } catch (error) {
-      throw error
-    }
+    await updateCartItemsInUser(id, items, undefined, setIsError)
+    setUpdated(true)
   }
 
-  const [Products, setProducts] = useState(
-    createOrderInDatabase && createOrderInDatabase.item
-      ? createOrderInDatabase.item
-      : [],
-  )
+  const totalOrder = Products.reduce((acc, curr) => {
+    const discountVal = Number(curr.offer.replace("%", ""))
+      ? Number(curr.offer.replace("%", ""))
+      : Number(curr.discount.replace("%", ""))
+    const itemPrice = curr.price - (curr.price / 100) * discountVal
+    return acc + itemPrice * (curr.quantity || 1)
+  }, 0)
 
-  const [isOrderPlaced, setIsOrderPlaced] = useState(false)
+  const DeliveryCharge = Products.length
+    ? Math.round(
+        Products.reduce((acc, curr) => acc + curr.deliveryCharge, 0) /
+          Products.length,
+      )
+    : 0
 
-  const [coupon, setCoupon] = useState("")
+  const deliveryCharge = Products.length
+    ? Math.round(
+        Products.reduce(
+          (acc, curr) => acc + (curr.freeDelivery ? 0 : curr.deliveryCharge),
+          0,
+        ) / Products.length,
+      )
+    : 0
 
-  const totalOrder = Products.reduce(
-    (acc, curr) =>
-      acc +
-      (curr.price -
-        (curr.price / 100) *
-          (Number(curr.offer.replace("%", ""))
-            ? Number(curr.offer.replace("%", ""))
-            : Number(curr.discount.replace("%", "")))) *
-        (curr.quantity ? curr.quantity : 1),
-    0,
-  )
-
-  const DeliveryCharge = Math.round(
-    Products.reduce((acc, curr) => acc + curr.deliveryCharge, 0) /
-      Products.length,
-  )
-
-  const deliveryCharge = Math.round(
-    Products.reduce(
-      (acc, curr) => acc + (curr.freeDelivery ? 0 : curr.deliveryCharge),
-      0,
-    ) / Products.length,
-  )
-
-  const freeDelivery = Math.round(
-    Products.reduce(
-      (acc, curr) => acc + (curr.freeDelivery ? curr.deliveryCharge : 0),
-      0,
-    ) / Products.length,
-  )
+  const freeDelivery = Products.length
+    ? Math.round(
+        Products.reduce(
+          (acc, curr) => acc + (curr.freeDelivery ? curr.deliveryCharge : 0),
+          0,
+        ) / Products.length,
+      )
+    : 0
 
   const totalPrice = totalOrder + deliveryCharge + (isCashOnDelivery ? 10 : 0)
 
+  async function deleteItem(product) {
+    try {
+      const Product = Products.filter((item) => item.id !== product.id)
+      orders[orders.length - 1].item = Product
+      setProducts(Product)
+
+      const createOrder = createOrderInDatabase
+
+      const createOrderItem =
+        createOrder &&
+        createOrder.item.length &&
+        createOrder.item.filter((item) => item.id === product.id)
+
+      const updatedCreateOrder = createOrder.item.filter(
+        (item) => item.id !== createOrderItem[0].id,
+      )
+
+      await updateAllItems(updatedCreateOrder)
+      setEditItems(true)
+    } catch (error) {
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
+      setIsError(error.message)
+    }
+  }
+
+  async function changeQuantity(e, product) {
+    try {
+      let inputElementValue = Number(e.target.value)
+      // Update clothsData in memory
+      const item = await fetchClothById(product.id, undefined, setIsError)
+      if (inputElementValue > 0) {
+        item.quantity = inputElementValue
+      } else {
+        item.quantity = 1
+      }
+
+      // Update user in Database
+      const isItemAddedToCart = user.addToCartItems.filter(
+        (item) => item.id === product.id,
+      )
+      if (isItemAddedToCart.length) {
+        if (inputElementValue > 0) {
+          isItemAddedToCart[0].quantity = inputElementValue
+        } else {
+          isItemAddedToCart[0].quantity = 1
+        }
+
+        await updateCartItems(user._id, user.addToCartItems)
+      }
+
+      // Update createOrder in Database
+      const createOrder = createOrderInDatabase
+
+      const createOrderItem =
+        createOrder &&
+        createOrder.item.length &&
+        createOrder.item.filter((item) => item.id === product.id)
+
+      if (createOrderItem && createOrderItem.length) {
+        if (inputElementValue > 0) {
+          createOrderItem[0].quantity = inputElementValue
+        } else {
+          createOrderItem[0].quantity = 1
+        }
+      }
+
+      await updateAllItems(createOrder.item)
+
+      // Update items of current order
+      const Product = Products.find((item) => item.id === product.id)
+      Product.quantity = inputElementValue
+      orders[orders.length - 1].item = Products
+      // useState(true)
+      setEditItems(true)
+    } catch (error) {
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
+      setIsError(error.message)
+    }
+  }
+
+  async function increaseCount(e, product) {
+    try {
+      // Update the input element value
+      let inputElementValue = Number(e.target.previousElementSibling.value)
+      e.target.previousElementSibling.value = ++inputElementValue
+
+      // Update clothsData in memory
+      const item = await fetchClothById(product.id, undefined, setIsError)
+      item.quantity = Number(e.target.previousElementSibling.value)
+
+      // Update user in Database
+      const isItemAddedToCart = user.addToCartItems.filter(
+        (item) => item.id === product.id,
+      )
+      if (isItemAddedToCart.length) {
+        isItemAddedToCart[0].quantity = Number(
+          e.target.previousElementSibling.value,
+        )
+        await updateCartItemsInUser(
+          user._id,
+          user.addToCartItems,
+          undefined,
+          setIsError,
+        )
+      }
+
+      // Update createOrder in Database
+      const createOrder = createOrderInDatabase
+
+      const createOrderItem =
+        createOrder &&
+        createOrder.item.length &&
+        createOrder.item.filter((item) => item.id === product.id)
+
+      if (createOrderItem && createOrderItem.length) {
+        createOrderItem[0].quantity = Number(
+          e.target.previousElementSibling.value,
+        )
+      }
+
+      const CreateOrder = {
+        products: createOrder.item,
+        userId,
+      }
+      await fetchCreateOrderByUserIdAndUpdate(
+        userId,
+        CreateOrder,
+        undefined,
+        setIsError,
+      )
+
+      // Update items of current order
+      const Product = Products.find((item) => item.id === product.id)
+      Product.quantity = Number(e.target.previousElementSibling.value)
+      orders[orders.length - 1].item = Products
+
+      // To update the variables present in this page
+      setUpdated(true)
+      setEditItems(true)
+    } catch (error) {
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
+      setIsError(error.message)
+    }
+  }
+
   async function placeOrder() {
     try {
-      const order = orders[orders.length - 1]
+      const order = { ...orders[orders.length - 1] }
 
       if (coupon === "HAPPYDIWALI") {
         order.sale = "10%"
@@ -181,32 +298,26 @@ export default function PaymentMethods() {
       )
 
       const newOrder = await saveNewOrder(order, undefined, setIsError)
-      if (newOrder) {
-        const result = await removeAllItemsFromCreateOrder()
-        if (result) {
-          const productsArray = order.item
-          productsArray.forEach(async (product) => {
-            try {
-              if (product.addToCart) {
-                user.addToCartItems = user.addToCartItems.filter(
-                  (item) => item.id !== product.id,
-                )
-              }
-            } catch (error) {
-              if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
-                console.error(error)
-              }
-              setIsError(error.message)
-            }
-          })
+      if (!newOrder) return
 
-          await updateCartItems(user._id, user.addToCartItems)
+      const result = await removeAllItemsFromCreateOrder()
+      if (!result) return
 
-          setIsOrderPlaced(true)
-
-          toast("Order Placed Successfully🎉😊")
+      if (order.item) {
+        let updatedCartItems = [...user.addToCartItems]
+        for (const product of order.item) {
+          if (product.addToCart) {
+            updatedCartItems = updatedCartItems.filter(
+              (item) => item.id !== product.id,
+            )
+          }
         }
+        user.addToCartItems = updatedCartItems
+        await updateCartItems(user._id, user.addToCartItems)
       }
+
+      setIsOrderPlaced(true)
+      toast("Order Placed Successfully🎉😊")
     } catch (error) {
       if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
         console.error(error)
@@ -215,51 +326,33 @@ export default function PaymentMethods() {
     }
   }
 
-  const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ]
-
   function getOrderDate() {
-    const today = new Date()
-    return `${today.getDate()} ${
-      months[today.getMonth()]
-    } ${today.getFullYear()}`
+    return new Date().toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    })
   }
 
   function setDeliveryDate() {
-    const today = new Date()
-    today.setDate(today.getDate() + 10)
-    return `${today.getDate()} ${
-      months[today.getMonth()]
-    } ${today.getFullYear()}`
+    const delivery = new Date()
+    delivery.setDate(delivery.getDate() + 10)
+    return delivery.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    })
   }
 
   function getDeliveryDay() {
-    const date = new Date()
-    date.setDate(date.getDate() + 10)
-    const dayName = date.toLocaleDateString("en-US", {
-      weekday: "long",
-    })
-    return dayName
+    const delivery = new Date()
+    delivery.setDate(delivery.getDate() + 10)
+    return delivery.toLocaleDateString("en-US", { weekday: "long" })
   }
 
   function setDeliveryTime() {
-    const today = new Date()
-    return today.toLocaleTimeString()
+    return new Date().toLocaleTimeString()
   }
-
-  const [editItems, setEditItems] = useState(false)
 
   useEffect(() => {
     async function fetchData() {
@@ -271,7 +364,7 @@ export default function PaymentMethods() {
           setCreateOrderInDatabase,
           setIsError,
         )
-        setProducts(createOrder.length === 0 ? [] : createOrder[0].products)
+        setProducts(createOrder?.length ? createOrder[0].products : [])
         await fetchUserById(userId, setUser, setIsError)
         const orders = await fetchAllOrdersByUserId(
           userId,
@@ -455,41 +548,8 @@ export default function PaymentMethods() {
                             >
                               <button
                                 className="border border-0 bg-white text-danger"
-                                onClick={async (e) => {
-                                  try {
-                                    const Product = Products.filter(
-                                      (item) => item.id !== product.id,
-                                    )
-                                    orders[orders.length - 1].item = Product
-                                    setProducts(Product)
-
-                                    // Update createOrder in Database
-                                    const createOrder = createOrderInDatabase
-
-                                    const createOrderItem =
-                                      createOrder &&
-                                      createOrder.item.length &&
-                                      createOrder.item.filter(
-                                        (item) => item.id === product.id,
-                                      )
-
-                                    const updatedCreateOrder =
-                                      createOrder.item.filter(
-                                        (item) =>
-                                          item.id !== createOrderItem[0].id,
-                                      )
-
-                                    await updateAllItems(updatedCreateOrder)
-                                    setEditItems(true)
-                                  } catch (error) {
-                                    if (
-                                      import.meta.env.VITE_MODE ===
-                                      "DEVELOPMENT"
-                                    ) {
-                                      console.error(error)
-                                    }
-                                    setIsError(error.message)
-                                  }
+                                onClick={() => {
+                                  deleteItem(product)
                                 }}
                               >
                                 <i className="bi bi-trash3-fill"></i>
@@ -499,173 +559,13 @@ export default function PaymentMethods() {
                                 className={`border border-0 ${styles.quantityInput}`}
                                 defaultValue={product.quantity || 1}
                                 onChange={async (e) => {
-                                  try {
-                                    let inputElementValue = Number(
-                                      e.target.value,
-                                    )
-                                    // Update clothsData in memory
-                                    const item = await fetchClothById(
-                                      product.id,
-                                      undefined,
-                                      setIsError,
-                                    )
-                                    if (inputElementValue > 0) {
-                                      item.quantity = inputElementValue
-                                    } else {
-                                      item.quantity = 1
-                                    }
-
-                                    // Update user in Database
-                                    const isItemAddedToCart =
-                                      user.addToCartItems.filter(
-                                        (item) => item.id === product.id,
-                                      )
-                                    if (isItemAddedToCart.length) {
-                                      if (inputElementValue > 0) {
-                                        isItemAddedToCart[0].quantity =
-                                          inputElementValue
-                                      } else {
-                                        isItemAddedToCart[0].quantity = 1
-                                      }
-
-                                      await updateCartItems(
-                                        user._id,
-                                        user.addToCartItems,
-                                      )
-                                    }
-
-                                    // Update createOrder in Database
-                                    const createOrder = createOrderInDatabase
-
-                                    const createOrderItem =
-                                      createOrder &&
-                                      createOrder.item.length &&
-                                      createOrder.item.filter(
-                                        (item) => item.id === product.id,
-                                      )
-
-                                    if (
-                                      createOrderItem &&
-                                      createOrderItem.length
-                                    ) {
-                                      if (inputElementValue > 0) {
-                                        createOrderItem[0].quantity =
-                                          inputElementValue
-                                      } else {
-                                        createOrderItem[0].quantity = 1
-                                      }
-                                    }
-
-                                    await updateAllItems(createOrder.item)
-
-                                    // Update items of current order
-                                    const Product = Products.find(
-                                      (item) => item.id === product.id,
-                                    )
-                                    Product.quantity = inputElementValue
-                                    orders[orders.length - 1].item = Products
-                                    // useState(true)
-                                    setEditItems(true)
-                                  } catch (error) {
-                                    if (
-                                      import.meta.env.VITE_MODE ===
-                                      "DEVELOPMENT"
-                                    ) {
-                                      console.error(error)
-                                    }
-                                    setIsError(error.message)
-                                  }
+                                  changeQuantity(e, product)
                                 }}
                               />
                               <button
                                 className={`border border-0 bg-white fs-5 fw-bold ${styles.increaseQuantityBtn}`}
                                 onClick={async (e) => {
-                                  try {
-                                    // Update the input element value
-                                    let inputElementValue = Number(
-                                      e.target.previousElementSibling.value,
-                                    )
-                                    e.target.previousElementSibling.value =
-                                      ++inputElementValue
-
-                                    // Update clothsData in memory
-                                    const item = await fetchClothById(
-                                      product.id,
-                                      undefined,
-                                      setIsError,
-                                    )
-                                    item.quantity = Number(
-                                      e.target.previousElementSibling.value,
-                                    )
-
-                                    // Update user in Database
-                                    const isItemAddedToCart =
-                                      user.addToCartItems.filter(
-                                        (item) => item.id === product.id,
-                                      )
-                                    if (isItemAddedToCart.length) {
-                                      isItemAddedToCart[0].quantity = Number(
-                                        e.target.previousElementSibling.value,
-                                      )
-                                      await updateCartItemsInUser(
-                                        user._id,
-                                        user.addToCartItems,
-                                        undefined,
-                                        setIsError,
-                                      )
-                                    }
-
-                                    // Update createOrder in Database
-                                    const createOrder = createOrderInDatabase
-
-                                    const createOrderItem =
-                                      createOrder &&
-                                      createOrder.item.length &&
-                                      createOrder.item.filter(
-                                        (item) => item.id === product.id,
-                                      )
-
-                                    if (
-                                      createOrderItem &&
-                                      createOrderItem.length
-                                    ) {
-                                      createOrderItem[0].quantity = Number(
-                                        e.target.previousElementSibling.value,
-                                      )
-                                    }
-
-                                    const CreateOrder = {
-                                      products: createOrder.item,
-                                      userId,
-                                    }
-                                    await fetchCreateOrderByUserIdAndUpdate(
-                                      userId,
-                                      CreateOrder,
-                                      undefined,
-                                      setIsError,
-                                    )
-
-                                    // Update items of current order
-                                    const Product = Products.find(
-                                      (item) => item.id === product.id,
-                                    )
-                                    Product.quantity = Number(
-                                      e.target.previousElementSibling.value,
-                                    )
-                                    orders[orders.length - 1].item = Products
-
-                                    // To update the variables present in this page
-                                    setUpdated(true)
-                                    setEditItems(true)
-                                  } catch (error) {
-                                    if (
-                                      import.meta.env.VITE_MODE ===
-                                      "DEVELOPMENT"
-                                    ) {
-                                      console.error(error)
-                                    }
-                                    setIsError(error.message)
-                                  }
+                                  increaseCount(e, product)
                                 }}
                               >
                                 +
