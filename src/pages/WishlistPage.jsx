@@ -1,10 +1,15 @@
 import styles from "../style_modules/pages_modules/WishlistPage.module.css"
-import Header from "../components/Header"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Link } from "react-router-dom"
-import SearchInPage from "../components/SearchInPage"
-import { useState, useEffect } from "react"
 import { toast } from "react-toastify"
+import Header from "../components/Header"
+import Footer from "../components/Footer.jsx"
+import SearchInPage from "../components/SearchInPage"
+import Error from "../components/Error.jsx"
+import WishlistShimmer from "../shimmers/Wishlist.shimmer.jsx"
 import { Search } from "../services/Search"
+import GetUserId from "../services/GetClothsData.js"
+import { syncUserAndCreateOrder } from "../services/Function.js"
 import {
   fetchCreateOrderByUserId,
   fetchCreateOrderByUserIdAndUpdate,
@@ -13,32 +18,47 @@ import {
   updateWishlistItemsInUser,
   fetchClothById,
 } from "../services/FetchRequests.js"
-import WishlistShimmer from "../shimmers/Wishlist.shimmer.jsx"
-import Footer from "../components/Footer.jsx"
-import GetUserId from "../services/GetClothsData.js"
-import { syncUserAndCreateOrder } from "../services/Function.js"
-import Error from "../components/Error.jsx"
 
 export default function WishlistPage() {
+  const userId = GetUserId()
+
   const [loading, setLoading] = useState(false)
   const [isError, setIsError] = useState("")
-
   const [clothsData, setClothsData] = useState([])
   const [search, setSearch] = useState("")
-
-  /* isUpdated useState is used to if user press moveToCart btn  or  removeFromWishlist btn 
-  then variables present on this page will reinitialize */
   const [isUpdated, setUpdated] = useState(false)
-
-  const userId = GetUserId()
   const [user, setUser] = useState(null)
+  const [CreateOrderInDatabase, setCreateOrderInDatabase] = useState(null)
 
   useEffect(() => {
     setLoading(true)
   }, [])
 
+  const fetchData = useCallback(async () => {
+    if (!userId) {
+      setLoading(false)
+      return
+    }
+    try {
+      await Promise.all([
+        fetchCreateOrderByUserId(userId, setCreateOrderInDatabase, setIsError),
+        fetchUserById(userId, setUser, setIsError),
+      ])
+    } catch (error) {
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") console.error(error)
+      setIsError(error.message)
+    } finally {
+      setLoading(false)
+      setUpdated(false)
+    }
+  }, [userId])
+
   useEffect(() => {
-    async function fetchWishlistItems(setIsError) {
+    fetchData()
+  }, [fetchData, isUpdated])
+
+  useEffect(() => {
+    async function fetchWishlistItems() {
       try {
         if (user) {
           const itemsIds = user.addToWishlistItems.map((item) => item.id)
@@ -54,13 +74,11 @@ export default function WishlistPage() {
         setIsError(error.message)
       }
     }
-    fetchWishlistItems(setIsError)
+    fetchWishlistItems()
   }, [user])
 
-  const [CreateOrderInDatabase, setCreateOrderInDatabase] = useState(null)
-
-  const uniqueCreateOrderInDatabase =
-    CreateOrderInDatabase && CreateOrderInDatabase.length
+  const uniqueCreateOrderInDatabase = useMemo(() => {
+    return CreateOrderInDatabase && CreateOrderInDatabase.length
       ? CreateOrderInDatabase[0].products.reduce((acc, item) => {
           if (!acc.length) {
             acc.push(item)
@@ -75,32 +93,59 @@ export default function WishlistPage() {
           return acc
         }, [])
       : []
+  }, [CreateOrderInDatabase])
   const createOrder = { item: uniqueCreateOrderInDatabase }
+
+  const finalClothsData = useMemo(() => {
+    return clothsData.map((cloth) => {
+      const isClothPresentInCart =
+        user && user.addToCartItems.filter((item) => item.id === cloth.id)
+      if (isClothPresentInCart && isClothPresentInCart.length) {
+        cloth.addToCart = true
+        cloth.quantity = isClothPresentInCart[0].quantity
+          ? isClothPresentInCart[0].quantity
+          : 1
+        cloth.size = isClothPresentInCart[0].size
+          ? isClothPresentInCart[0].size
+          : ""
+      } else {
+        delete cloth.addToCart
+      }
+      cloth.addToWishList = true
+      return cloth
+    })
+  }, [clothsData, user])
+
+  const finalWishlistProducts = useMemo(() => {
+    if (!search) return finalClothsData
+    const searchProducts = Search(finalClothsData, search) || []
+    return searchProducts.length
+      ? finalClothsData.filter((product) => {
+          const filteredSearchProducts = searchProducts.filter(
+            (item) => item.addToWishList,
+          )
+          const cloth = filteredSearchProducts.filter(
+            (item) => item.id === product.id,
+          )
+          return cloth.length
+        })
+      : finalClothsData
+  }, [search, finalClothsData])
 
   async function moveToCart(e) {
     try {
       // To stop Event Bubbling
       e.preventDefault()
       e.stopPropagation()
+      const productId = Number(e.target.value)
 
       const promises = []
 
-      // Update clothsData in memory
-      const cloth = await fetchClothById(
-        Number(e.target.value),
-        undefined,
-        setIsError,
-      )
-      if (cloth) {
-        cloth.addToCart = true
-        cloth.quantity = 1
-        cloth.size = ""
-      }
-
       // Update createOrder in Database
+      const updatedOrderItems = [...uniqueCreateOrderInDatabase]
       const createOrderItem =
-        createOrder.item.length &&
-        createOrder.item.find((item) => item.id === Number(e.target.value))
+        updatedOrderItems.length &&
+        updatedOrderItems.find((item) => item.id === Number(productId))
       if (createOrderItem) {
         const isCreateOrderItemAddedToCart = user.addToCartItems.filter(
           (item) => item.id === createOrderItem.id,
@@ -114,12 +159,12 @@ export default function WishlistPage() {
           createOrderItem.quantity = 1
           createOrderItem.size = ""
         }
-        const CreateOrder = { products: createOrder.item, userId }
+        const payload = { products: updatedOrderItems, userId }
         promises.push({
           name: "createOrder",
           request: fetchCreateOrderByUserIdAndUpdate(
             userId,
-            CreateOrder,
+            payload,
             undefined,
             setIsError,
           ),
@@ -127,12 +172,13 @@ export default function WishlistPage() {
       }
 
       // Update user in Database
-      const item = user.addToCartItems.filter(
-        (item) => item.id === Number(e.target.value),
+      const updatedCartItems = [...user.addToCartItems]
+      const item = updatedCartItems.filter(
+        (item) => item.id === Number(productId),
       )
       if (!item.length) {
-        user.addToCartItems.push({
-          id: Number(e.target.value),
+        updatedCartItems.push({
+          id: Number(productId),
           quantity: 1,
           size: "",
         })
@@ -143,7 +189,7 @@ export default function WishlistPage() {
         name: "user",
         request: updateCartItemsInUser(
           user._id,
-          user.addToCartItems,
+          updatedCartItems,
           undefined,
           setIsError,
         ),
@@ -168,15 +214,15 @@ export default function WishlistPage() {
         userId &&
           (await syncUserAndCreateOrder({
             userId,
-            productId: Number(e.target.value),
+            productId: Number(productId),
             setIsError,
             action: "cart",
             rejectedRequests,
           }))
       } else {
         // For interactivity
-        const product = user.addToCartItems.find(
-          (item) => item.id === Number(e.target.value),
+        const product = updatedCartItems.find(
+          (item) => item.id === Number(productId),
         )
         const btn = e.target
         if (product.quantity) {
@@ -192,7 +238,7 @@ export default function WishlistPage() {
           btn.innerHTML = "Added To Cart"
           btn.style.backgroundColor = ""
           btn.style.color = ""
-        }, 1000)
+        }, 5000)
 
         // To update the variables present in this page
         setUpdated(true)
@@ -212,22 +258,13 @@ export default function WishlistPage() {
       // To stop Event Bubbling
       e.preventDefault()
       e.stopPropagation()
+      const productId = Number(e.target.value)
 
       const promises = []
 
-      // Update clothsData in memory
-      const item = await fetchClothById(
-        Number(e.target.value),
-        undefined,
-        setIsError,
-      )
-      if (item) {
-        delete item.addToWishList
-      }
-
       // Update user in Database
       const remainingWishlistItem = user.addToWishlistItems.filter(
-        (item) => item.id !== Number(e.target.value),
+        (item) => item.id !== Number(productId),
       )
 
       promises.push({
@@ -244,9 +281,7 @@ export default function WishlistPage() {
       const Product =
         createOrder &&
         createOrder.item.length &&
-        createOrder.item.filter(
-          (product) => product.id === Number(e.target.value),
-        )
+        createOrder.item.filter((product) => product.id === Number(productId))
       if (Product && Product.length) {
         delete Product[0].addToWishList
         const CreateOrder = { products: createOrder.item, userId }
@@ -280,7 +315,7 @@ export default function WishlistPage() {
         userId &&
           (await syncUserAndCreateOrder({
             userId,
-            productId: Number(e.target.value),
+            productId: Number(productId),
             setIsError,
             action: "wishlist",
             rejectedRequests,
@@ -299,177 +334,109 @@ export default function WishlistPage() {
     }
   }
 
-  // To fix clothsData for first render of this page
-  const finalClothsData = clothsData.map((cloth) => {
-    const isClothPresentInCart =
-      user && user.addToCartItems.filter((item) => item.id === cloth.id)
-    if (isClothPresentInCart && isClothPresentInCart.length) {
-      cloth.addToCart = true
-      cloth.quantity = isClothPresentInCart[0].quantity
-        ? isClothPresentInCart[0].quantity
-        : 1
-      cloth.size = isClothPresentInCart[0].size
-        ? isClothPresentInCart[0].size
-        : ""
-    } else {
-      delete cloth.addToCart
-    }
-    cloth.addToWishList = true
-    return cloth
-  })
-
-  const searchProducts = search ? Search(finalClothsData, search) : []
-
-  const wishlistProducts = finalClothsData
-
-  const finalWishlistProducts = searchProducts.length
-    ? wishlistProducts.filter((product) => {
-        const filteredSearchProducts = searchProducts.filter(
-          (item) => item.addToWishList,
-        )
-        const cloth = filteredSearchProducts.filter(
-          (item) => item.id === product.id,
-        )
-        return cloth.length
-      })
-    : wishlistProducts
-
-  async function fetchData(setLoading, setIsError) {
-    try {
-      if (userId) {
-        await fetchCreateOrderByUserId(
-          userId,
-          setCreateOrderInDatabase,
-          setIsError,
-        )
-        await fetchUserById(userId, setUser, setIsError)
-      }
-      if (isUpdated) {
-        setUpdated(false)
-      }
-    } catch (error) {
-      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
-        console.error(error)
-      }
-      setIsError(error.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchData(setLoading, setIsError)
-  }, [isUpdated])
-
   if (isError) {
     return <Error />
   }
 
+  if (loading) {
+    return <WishlistShimmer />
+  }
+
   return (
     <>
-      {loading ? (
-        <WishlistShimmer />
-      ) : (
-        <>
-          <Header
-            position="static"
-            top="auto"
-            zIndex="auto"
-            setSearch={setSearch}
-            placeHolder="Search Product"
-            userDetails={user}
-            search={search}
-          />
-          <SearchInPage
-            margin="ms-3"
-            setSearch={setSearch}
-            placeHolder="Search Product"
-            search={search}
-          />
-          <main className="bg-body-secondary pb-3">
-            <div className="mx-5">
-              <h3 className="py-3 text-center">My Wishlist</h3>
-              <div className="row row-gap-4">
-                {finalWishlistProducts.map((product) => (
-                  <div
-                    key={product.id}
-                    className={`col-sm-6 col-md-4 col-xl-3 col-xxl-2 ${styles.cardContainer}`}
-                  >
-                    <Link
-                      className="text-decoration-none"
-                      to={`/productDetails/${product.id}`}
-                    >
-                      <div className="card border border-0">
-                        <img
-                          src={product.url}
-                          alt="productImage"
-                          className="img-fluid"
-                          style={{ height: "300px" }}
-                        />
-                        <div className="card-body">
-                          <p
-                            className="text-center overflow-hidden"
-                            style={{ height: "75px" }}
-                          >
-                            {product.newArrival === true && (
-                              <span className="badge text-bg-success me-1">
-                                New
-                              </span>
-                            )}
-                            {!!Number(product.offer.replace("%", "")) && (
-                              <span className="badge text-bg-warning me-1">
-                                Diwali Offer
-                              </span>
-                            )}
-                            {product.name.length > 61
-                              ? product.name.slice(0, 60).concat("...")
-                              : product.name}
-                          </p>
-                          <p className="text-center fw-bold">
-                            <b>₹</b>
-                            {Math.round(
-                              product.price -
-                                (product.price *
-                                  (Number(product.offer.replace("%", ""))
-                                    ? Number(product.offer.replace("%", ""))
-                                    : Number(
-                                        product.discount.replace("%", ""),
-                                      ))) /
-                                  100,
-                            )}{" "}
-                            (
-                            {Number(product.offer.replace("%", ""))
-                              ? product.offer
-                              : product.discount}{" "}
-                            off)
-                          </p>
-                          <button
-                            className={`btn btn-secondary w-100 my-2 ${styles.moveToCart}`}
-                            value={product.id}
-                            onClick={moveToCart}
-                          >
-                            {product.addToCart
-                              ? "Added To Cart"
-                              : "Move To Cart"}
-                          </button>
-                          <button
-                            className={`btn btn-outline-secondary w-100 ${styles.saveToWishlist}`}
-                            value={product.id}
-                            onClick={removeFromWishlist}
-                          >
-                            Remove From Wishlist
-                          </button>
-                        </div>
-                      </div>
-                    </Link>
+      <Header
+        position="static"
+        top="auto"
+        zIndex="auto"
+        setSearch={setSearch}
+        placeHolder="Search Product"
+        userDetails={user}
+        search={search}
+      />
+      <SearchInPage
+        margin="ms-3"
+        setSearch={setSearch}
+        placeHolder="Search Product"
+        search={search}
+      />
+      <main className="bg-body-secondary pb-3">
+        <div className="mx-5">
+          <h3 className="py-3 text-center">My Wishlist</h3>
+          <div className="row row-gap-4">
+            {finalWishlistProducts.map((product) => (
+              <div
+                key={product.id}
+                className={`col-sm-6 col-md-4 col-xl-3 col-xxl-2 ${styles.cardContainer}`}
+              >
+                <Link
+                  className="text-decoration-none"
+                  to={`/productDetails/${product.id}`}
+                >
+                  <div className="card border border-0">
+                    <img
+                      src={product.url}
+                      alt="productImage"
+                      className="img-fluid"
+                      style={{ height: "300px" }}
+                    />
+                    <div className="card-body">
+                      <p
+                        className="text-center overflow-hidden"
+                        style={{ height: "75px" }}
+                      >
+                        {product.newArrival === true && (
+                          <span className="badge text-bg-success me-1">
+                            New
+                          </span>
+                        )}
+                        {!!Number(product.offer.replace("%", "")) && (
+                          <span className="badge text-bg-warning me-1">
+                            Diwali Offer
+                          </span>
+                        )}
+                        {product.name.length > 61
+                          ? product.name.slice(0, 60).concat("...")
+                          : product.name}
+                      </p>
+                      <p className="text-center fw-bold">
+                        <b>₹</b>
+                        {Math.round(
+                          product.price -
+                            (product.price *
+                              (Number(product.offer.replace("%", ""))
+                                ? Number(product.offer.replace("%", ""))
+                                : Number(product.discount.replace("%", "")))) /
+                              100,
+                        )}{" "}
+                        (
+                        {Number(product.offer.replace("%", ""))
+                          ? product.offer
+                          : product.discount}{" "}
+                        off)
+                      </p>
+                      <button
+                        className={`btn btn-secondary w-100 my-2 ${styles.moveToCart}`}
+                        value={product.id}
+                        onClick={moveToCart}
+                      >
+                        {product.addToCart ? "Added To Cart" : "Move To Cart"}
+                      </button>
+                      <button
+                        className={`btn btn-outline-secondary w-100 ${styles.saveToWishlist}`}
+                        value={product.id}
+                        onClick={removeFromWishlist}
+                      >
+                        Remove From Wishlist
+                      </button>
+                    </div>
                   </div>
-                ))}
+                </Link>
               </div>
-            </div>
-          </main>
-          <Footer />
-        </>
-      )}
+            ))}
+          </div>
+        </div>
+      </main>
+      <Footer />
     </>
   )
 }
