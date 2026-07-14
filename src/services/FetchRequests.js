@@ -2,7 +2,7 @@ let url = null
 if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
   url = "http://localhost:3000"
 } else {
-  url = "https://bharat-vastra-ecom-backend.vercel.app/"
+  url = "https://bharat-vastra-ecom-backend.vercel.app"
 }
 
 export async function fetchCloths(obj) {
