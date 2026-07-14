@@ -499,22 +499,12 @@ export default function ProductDetailsPage() {
       e.stopPropagation()
       const currentTargetId = Number(e.target.value)
 
-      const cloth = await fetchClothById({
-        clothId: currentTargetId,
-        setIsError,
-      })
-      if (cloth) {
-        cloth.addToCart = true
-        cloth.quantity = quantity
-        cloth.size = size
-      }
-
       const isAddedToCart = user.addToCartItems.filter(
         (item) => item.id === currentTargetId,
       )
       if (!isAddedToCart.length) {
         user.addToCartItems.push({
-          id: cloth.id,
+          id: currentTargetId,
           quantity: currentTargetId === id ? quantity : 1,
           size: size,
         })
@@ -562,12 +552,6 @@ export default function ProductDetailsPage() {
           setIsError,
           navigate,
         })
-
-        const item = await fetchClothById({
-          clothId: currentTargetId,
-          setIsError,
-        })
-        if (item) item.addToWishList = true
 
         const btn = e.target
         btn.innerHTML = "Added To Wishlist"
