@@ -1,29 +1,31 @@
 import styles from "../style_modules/pages_modules/UserAddresses.module.css"
 import Header from "../components/Header"
-import { Link, useParams } from "react-router-dom"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import { useState, useEffect } from "react"
-import { fetchUserById, updateAddressOfUser } from "../services/FetchRequests"
+import { updateAddressOfUser } from "../services/FetchRequests"
 import Footer from "../components/Footer"
-import GetUserId from "../services/GetClothsData"
+import GetUser from "../services/GetClothsData"
 import Error from "../components/Error"
 import { images } from "../assets/images/images"
 
 export default function UserAddresses() {
   const [isError, setIsError] = useState("")
   const param = useParams()
-  const userId = GetUserId()
-  const [user, setUser] = useState(null)
+  const navigate = useNavigate()
+
+  const { user, setUser } = GetUser()
+  const userId = user._id
+
   const [isUpdated, setUpdated] = useState(false)
 
   async function updateAddress(userId, addresses) {
     try {
-      await updateAddressOfUser(
-        userId,
+      await updateAddressOfUser({
         addresses,
-        undefined,
         setIsError,
         setUpdated,
-      )
+        navigate,
+      })
     } catch (error) {
       if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
         console.error(error)
@@ -32,25 +34,25 @@ export default function UserAddresses() {
     }
   }
 
-  if (user && user.address.length) {
+  if (Object.keys(user).length && user.address.length) {
     const selectedAddress = user.address.find((address) => address.selected)
     if (!selectedAddress) {
       user.address[0].selected = true
       updateAddress(userId, user.address)
     }
   }
+
   async function removeAddress(e) {
     try {
       user.address = user.address.filter(
         (address) => address.id !== Number(e.target.value),
       )
-      await updateAddressOfUser(
-        userId,
-        user.address,
-        undefined,
+      await updateAddressOfUser({
+        addresses: user.address,
         setIsError,
         setUpdated,
-      )
+        navigate,
+      })
     } catch (error) {
       if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
         console.error(error)
@@ -59,26 +61,15 @@ export default function UserAddresses() {
     }
   }
 
-  async function fetchData(setIsError) {
-    try {
-      await fetchUserById(userId, setUser, setIsError)
-      if (isUpdated) {
-        setUpdated(false)
-      }
-    } catch (error) {
-      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
-        console.error(error)
-      }
-      setIsError(error.message)
-    }
+  if (isUpdated) {
+    setUpdated(false)
   }
-
-  useEffect(() => {
-    fetchData(setIsError)
-  }, [isUpdated])
-
   if (isError) {
     return <Error />
+  }
+
+  if (!Object.keys(user).length) {
+    return
   }
 
   return (
@@ -104,7 +95,11 @@ export default function UserAddresses() {
                 }}
               >
                 <div className="text-center">
-                  <img src={images.Plus} alt="plusIcon" style={{ width: "30px" }} />
+                  <img
+                    src={images.Plus}
+                    alt="plusIcon"
+                    style={{ width: "30px" }}
+                  />
                   <h4 className="mt-2">Add Address</h4>
                 </div>
               </Link>
@@ -127,13 +122,12 @@ export default function UserAddresses() {
                           address.selected = false
                         }
                       }
-                      await updateAddressOfUser(
-                        userId,
-                        user.address,
-                        undefined,
+                      await updateAddressOfUser({
+                        addresses: user.address,
                         setIsError,
                         setUpdated,
-                      )
+                        navigate,
+                      })
                     } catch (error) {
                       if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
                         console.error(error)
@@ -169,19 +163,27 @@ export default function UserAddresses() {
                       </div>
                       <div className="d-flex justify-content-between align-items-center">
                         <div>
-                          <Link
-                            to={`/editAddress/${address.id}`}
+                          <button
                             className={`text-decoration-none border border-0 bg-white me-1 fw-medium text-primary ${styles.addressEditOrRemove}`}
                             style={{ cursor: "pointer" }}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              navigate(`/editAddress/${address.id}`)
+                            }}
                           >
                             Edit
-                          </Link>
+                          </button>
                           <span className="fw-medium text-primary">|</span>
                           <button
                             className={`border border-0 bg-white ms-1 fw-medium text-primary ${styles.addressEditOrRemove}`}
                             style={{ cursor: "pointer" }}
                             value={address.id}
-                            onClick={removeAddress}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              removeAddress(e)
+                            }}
                           >
                             Remove
                           </button>

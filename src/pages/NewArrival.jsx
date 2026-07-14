@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { toast } from "react-toastify"
 
 import styles from "../style_modules/pages_modules/NewArrival.module.css"
@@ -10,14 +10,13 @@ import NewArrivalShimmer from "../shimmers/NewArrival.shimmer.jsx"
 import Footer from "../components/Footer.jsx"
 import Error from "../components/Error.jsx"
 
-import GetUserId from "../services/GetClothsData.js"
+import GetUser from "../services/GetClothsData"
 import { Search } from "../services/Search"
 import {
   fetchNewArrivalCloths,
   updateCartItemsInUser,
   updateWishlistItemsInUser,
   fetchCreateOrderByUserIdAndUpdate,
-  fetchUserById,
   fetchClothById,
   fetchCreateOrderByUserId,
 } from "../services/FetchRequests.js"
@@ -26,8 +25,9 @@ import { syncUserAndCreateOrder } from "../services/Function.js"
 const itemsPerPage = 12
 
 export default function NewArrival() {
-  const userId = GetUserId()
-  const [user, setUser] = useState(null)
+  const { user, setUser } = GetUser()
+  const userId = user._id
+  const navigate = useNavigate()
 
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -45,12 +45,12 @@ export default function NewArrival() {
     async function fetchData() {
       try {
         if (userId) {
-          await fetchCreateOrderByUserId(
+          await fetchCreateOrderByUserId({
             userId,
-            setCreateOrderInDatabase,
+            setFunction: setCreateOrderInDatabase,
             setIsError,
-          )
-          const user = await fetchUserById(userId, setUser, setIsError)
+            navigate,
+          })
         }
         if (isUpdate) {
           setUpdate(false)
@@ -65,7 +65,7 @@ export default function NewArrival() {
       }
     }
     fetchData()
-  }, [isUpdate])
+  }, [isUpdate, userId])
 
   const loadProducts = useCallback(
     async (currentPage, search) => {
@@ -78,11 +78,12 @@ export default function NewArrival() {
           search: search.join(","),
         }
 
-        const response = await fetchNewArrivalCloths(
+        const response = await fetchNewArrivalCloths({
           query,
-          setProducts,
+          setFunction: setProducts,
           setIsError,
-        )
+          navigate,
+        })
 
         if (response) {
           setTotalPages(response.pagination?.totalPages || 1)
@@ -146,16 +147,19 @@ export default function NewArrival() {
 
         promises.push({
           name: "user",
-          request: updateCartItemsInUser(
-            user._id,
-            user.addToCartItems,
-            undefined,
+          request: updateCartItemsInUser({
+            items: user.addToCartItems,
             setIsError,
-          ),
+            navigate,
+          }),
         })
 
         // Update clothsData in memory
-        const item = await fetchClothById(e.target.value, undefined, setIsError)
+        const item = await fetchClothById({
+          clothId: e.target.value,
+          setIsError,
+          navigate,
+        })
         if (item) {
           item.addToCart = true
           item.quantity = 1
@@ -176,12 +180,12 @@ export default function NewArrival() {
           const CreateOrder = { products: createOrder.item, userId }
           promises.push({
             name: "createOrder",
-            request: fetchCreateOrderByUserIdAndUpdate(
+            request: fetchCreateOrderByUserIdAndUpdate({
               userId,
-              CreateOrder,
-              undefined,
+              createOrder: CreateOrder,
               setIsError,
-            ),
+              navigate,
+            }),
           })
         }
 
@@ -224,7 +228,7 @@ export default function NewArrival() {
           // To update the variables present in this page
           setUpdate(true)
 
-          toast("Product added to cart😊")
+          toast.success("Product added to cart😊")
         }
       }
     } catch (error) {
@@ -254,16 +258,19 @@ export default function NewArrival() {
         user.addToWishlistItems.push({ id: Number(e.target.value) })
         promises.push({
           name: "user",
-          request: updateWishlistItemsInUser(
-            user._id,
-            user.addToWishlistItems,
-            undefined,
+          request: updateWishlistItemsInUser({
+            items: user.addToWishlistItems,
             setIsError,
-          ),
+            navigate,
+          }),
         })
 
         // Update clothsData in memory
-        const item = await fetchClothById(e.target.value, undefined, setIsError)
+        const item = await fetchClothById({
+          clothId: e.target.value,
+          setIsError,
+          navigate,
+        })
 
         if (item) {
           item.addToWishList = true
@@ -281,12 +288,12 @@ export default function NewArrival() {
           const CreateOrder = { products: createOrder.item, userId }
           promises.push({
             name: "createOrder",
-            request: fetchCreateOrderByUserIdAndUpdate(
+            request: fetchCreateOrderByUserIdAndUpdate({
               userId,
-              CreateOrder,
-              undefined,
+              createOrder: CreateOrder,
               setIsError,
-            ),
+              navigate,
+            }),
           })
         }
 
@@ -317,7 +324,7 @@ export default function NewArrival() {
         } else {
           // For interactivity
           const btn = e.target
-          btn.innerHTML = '<i className="bi bi-check2"></i>'
+          btn.innerHTML = "Added To Wishlist"
           btn.style.backgroundColor = "#05a058"
           btn.style.color = "white"
           setTimeout(() => {
@@ -329,7 +336,7 @@ export default function NewArrival() {
           // To update the variables present in this page
           setUpdate(true)
 
-          toast("Product added to wishlist😊")
+          toast.success("Product added to wishlist😊")
         }
       }
     } catch (error) {
@@ -342,31 +349,39 @@ export default function NewArrival() {
     }
   }
 
-  const finalProducts = products.map((cloth) => {
-    const isClothPresentInCart =
-      user && user.addToCartItems.filter((item) => item.id === cloth.id)
-    if (isClothPresentInCart && isClothPresentInCart.length) {
-      cloth.addToCart = true
-      cloth.quantity = isClothPresentInCart[0].quantity
-        ? isClothPresentInCart[0].quantity
-        : 1
-      cloth.size = isClothPresentInCart[0].size
-        ? isClothPresentInCart[0].size
-        : ""
-    } else {
-      delete cloth.addToCart
-    }
-    const isClothPresentInWishlist =
-      user && user.addToWishlistItems.filter((item) => item.id === cloth.id)
-    if (isClothPresentInWishlist && isClothPresentInWishlist.length) {
-      cloth.addToWishList = true
-    } else {
-      delete cloth.addToWishList
-    }
-    return cloth
-  })
+  const finalProducts = Object.keys(user).length
+    ? products.map((cloth) => {
+        const isClothPresentInCart =
+          user && user.addToCartItems.filter((item) => item.id === cloth.id)
+        if (isClothPresentInCart && isClothPresentInCart.length) {
+          cloth.addToCart = true
+          cloth.quantity = isClothPresentInCart[0].quantity
+            ? isClothPresentInCart[0].quantity
+            : 1
+          cloth.size = isClothPresentInCart[0].size
+            ? isClothPresentInCart[0].size
+            : ""
+        } else {
+          delete cloth.addToCart
+        }
+        const isClothPresentInWishlist =
+          user && user.addToWishlistItems.filter((item) => item.id === cloth.id)
+        if (isClothPresentInWishlist && isClothPresentInWishlist.length) {
+          cloth.addToWishList = true
+        } else {
+          delete cloth.addToWishList
+        }
+        return cloth
+      })
+    : []
 
-  if (isError) return <Error />
+  if (isError) {
+    return <Error />
+  }
+
+  if (!Object.keys(user).length) {
+    return
+  }
 
   return (
     <>
@@ -463,7 +478,7 @@ export default function NewArrival() {
                                 onClick={(e) => {
                                   e.preventDefault()
                                   e.stopPropagation()
-                                  toast("Please login to your account")
+                                  toast.info("Please login to your account")
                                 }}
                               >
                                 {product.addToCart
@@ -489,7 +504,7 @@ export default function NewArrival() {
                                 onClick={(e) => {
                                   e.preventDefault()
                                   e.stopPropagation()
-                                  toast("Please login to your account")
+                                  toast.info("Please login to your account")
                                 }}
                               >
                                 {product.addToWishList

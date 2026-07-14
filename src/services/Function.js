@@ -1,16 +1,18 @@
+import { useNavigate } from "react-router-dom"
 import {
   fetchCreateOrderByUserId,
   fetchCreateOrderByUserIdAndUpdate,
-  fetchUserById,
+  fetchMe,
   updateCartItemsInUser,
   updateWishlistItemsInUser,
 } from "./FetchRequests"
 
 export async function syncUserAndCreateOrder(obj) {
+  const navigate = useNavigate()
   try {
     const { userId, productId, setIsError, action, rejectedRequests } = obj
-    const createOrder = await fetchCreateOrderByUserId(userId)
-    const user = await fetchUserById(userId)
+    const createOrder = await fetchCreateOrderByUserId({ userId, navigate })
+    const user = await fetchMe({ navigate })
     if (createOrder?.length && user) {
       const createOrderItems = createOrder[0].products
       const idOfCreateOrderItems = createOrderItems.map((item) => item.id)
@@ -47,12 +49,12 @@ export async function syncUserAndCreateOrder(obj) {
           }
         }
         const updatedCreateOrder = { products: createOrderItems, userId }
-        await fetchCreateOrderByUserIdAndUpdate(
-          userId,
-          updatedCreateOrder,
-          undefined,
+        await fetchCreateOrderByUserIdAndUpdate({
+          userId: userId,
+          createOrder: updatedCreateOrder,
           setIsError,
-        )
+          navigate,
+        })
       }
       if (rejectedRequestsName.includes("createOrder")) {
         if (action === "cart") {
@@ -63,12 +65,11 @@ export async function syncUserAndCreateOrder(obj) {
             const updatedCartItems = productsInCart.filter(
               (product) => product.id !== productId,
             )
-            await updateCartItemsInUser(
-              userId,
-              updatedCartItems,
-              undefined,
+            await updateCartItemsInUser({
+              items: updatedCartItems,
               setIsError,
-            )
+              navigate,
+            })
           }
         }
         if (action === "wishlist") {
@@ -79,12 +80,11 @@ export async function syncUserAndCreateOrder(obj) {
             const updatedWishlistItems = productsInWishlist.filter(
               (product) => product.id !== productId,
             )
-            await updateWishlistItemsInUser(
-              userId,
-              updatedWishlistItems,
-              undefined,
+            await updateWishlistItemsInUser({
+              items: updatedWishlistItems,
               setIsError,
-            )
+              navigate,
+            })
           }
         }
       }

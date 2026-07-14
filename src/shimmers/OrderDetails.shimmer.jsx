@@ -1,10 +1,8 @@
-import { HeaderShimmer } from "../services/styledComponents.js"
 import styles from "../style_modules/shimmer_modules/OrderDetailsShimmer.module.css"
 
 export default function OrderDetailsShimmer() {
   return (
     <>
-      <HeaderShimmer />
       <main className={`py-3 ${styles.main} container`}>
         <div
           className={`mx-auto orderDetailsContainer ${styles.orderDetailsContainer}`}

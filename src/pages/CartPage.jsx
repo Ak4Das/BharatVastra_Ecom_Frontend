@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { toast } from "react-toastify"
 import styles from "../style_modules/pages_modules/CartPage.module.css"
 import Header from "../components/Header"
@@ -7,12 +7,11 @@ import SearchInPage from "../components/SearchInPage"
 import CartPageShimmer from "../shimmers/CartPage.shimmer.jsx"
 import Footer from "../components/Footer.jsx"
 import Error from "../components/Error.jsx"
-import GetUserId from "../services/GetClothsData.js"
+import GetUser from "../services/GetClothsData"
 import { syncUserAndCreateOrder } from "../services/Function.js"
 import {
   fetchCreateOrderByUserId,
   fetchCreateOrderByUserIdAndUpdate,
-  fetchUserById,
   updateWishlistItemsInUser,
   updateCartItemsInUser,
   saveCreateOrder,
@@ -26,9 +25,11 @@ export default function CartPage() {
   const [isUpdated, setUpdated] = useState(false)
   const [isRemoveFromCart, setIsRemoveFromCart] = useState(false)
   const [isOrderConfirmed, setConfirmOrder] = useState(false)
+  const navigate = useNavigate()
 
-  const userId = GetUserId()
-  const [user, setUser] = useState(null)
+  const { user, setUser } = GetUser()
+  const userId = user._id
+
   const [createOrderInDatabase, setCreateOrderInDatabase] = useState(null)
   const [productsInCart, setProductsInCart] = useState([])
   const [permission, setPermission] = useState("")
@@ -42,20 +43,22 @@ export default function CartPage() {
     async function fetchData() {
       try {
         if (userId) {
-          await fetchCreateOrderByUserId(
+          await fetchCreateOrderByUserId({
             userId,
-            setCreateOrderInDatabase,
+            setFunction: setCreateOrderInDatabase,
             setIsError,
-          )
-          const fetchedUser = await fetchUserById(userId, setUser, setIsError)
+            navigate,
+          })
 
-          if (fetchedUser?.addToCartItems) {
-            const addToCartItemsId = fetchedUser.addToCartItems.map(
-              (item) => item.id,
-            )
+          if (user?.addToCartItems) {
+            const addToCartItemsId = user.addToCartItems.map((item) => item.id)
             const addToCartItems = await Promise.all(
               addToCartItemsId.map((id) =>
-                fetchClothById(id, undefined, setIsError),
+                fetchClothById({
+                  clothId: id,
+                  setIsError,
+                  navigate,
+                }),
               ),
             )
             setProductsInCart(addToCartItems)
@@ -71,7 +74,7 @@ export default function CartPage() {
       }
     }
     fetchData()
-  }, [isUpdated])
+  }, [isUpdated, userId])
 
   const finalClothsData = useMemo(() => {
     return productsInCart.map((cloth) => {
@@ -123,14 +126,18 @@ export default function CartPage() {
       try {
         const createOrderPayload = { products: data, userId }
         if (createOrderInDatabase.length) {
-          await fetchCreateOrderByUserIdAndUpdate(
+          await fetchCreateOrderByUserIdAndUpdate({
             userId,
-            createOrderPayload,
-            undefined,
+            createOrder: createOrderPayload,
             setIsError,
-          )
+            navigate,
+          })
         } else {
-          await saveCreateOrder(createOrderPayload, undefined, setIsError)
+          await saveCreateOrder({
+            createOrder: createOrderPayload,
+            setIsError,
+            navigate,
+          })
         }
         setUpdated(true)
       } catch (error) {
@@ -241,13 +248,14 @@ export default function CartPage() {
 
       promises.push({
         name: "user",
-        request: updateWishlistItemsInUser(
-          user._id,
-          updatedWishlist,
-          undefined,
+        request: updateWishlistItemsInUser({
+          items: updatedWishlist,
           setIsError,
-        ),
+          navigate,
+        }),
       })
+
+      setUser({ ...user, addToWishlistItems: updatedWishlist })
 
       const matchedClothsItem = finalClothsData.find(
         (product) => product.id === targetProductId,
@@ -271,12 +279,12 @@ export default function CartPage() {
 
         promises.push({
           name: "createOrder",
-          request: fetchCreateOrderByUserIdAndUpdate(
+          request: fetchCreateOrderByUserIdAndUpdate({
             userId,
-            createOrderPayload,
-            undefined,
+            createOrder: createOrderPayload,
             setIsError,
-          ),
+            navigate,
+          }),
         })
       }
 
@@ -315,7 +323,7 @@ export default function CartPage() {
         }, 1000)
 
         setUpdated(true)
-        toast("Product added to wishlist😊")
+        toast.success("Product added to wishlist😊")
       }
     } catch (error) {
       if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
@@ -335,12 +343,12 @@ export default function CartPage() {
         products: ProductsInCart,
         userId,
       }
-      await fetchCreateOrderByUserIdAndUpdate(
+      await fetchCreateOrderByUserIdAndUpdate({
         userId,
         createOrder,
-        undefined,
         setIsError,
-      )
+        navigate,
+      })
 
       const cloth = finalClothsData.find((cloth) => cloth.id === product.id)
       cloth.size = size
@@ -349,12 +357,11 @@ export default function CartPage() {
         (item) => item.id === product.id,
       )
       clothItem.size = size
-      await updateCartItemsInUser(
-        user._id,
-        user.addToCartItems,
-        undefined,
+      await updateCartItemsInUser({
+        items: user.addToCartItems,
         setIsError,
-      )
+        navigate,
+      })
 
       setUpdated(true)
 
@@ -400,12 +407,12 @@ export default function CartPage() {
       const remainingCartItems = user.addToCartItems.filter(
         (item) => item.id !== product.id,
       )
-      await updateCartItemsInUser(
-        user._id,
-        remainingCartItems,
-        undefined,
+      await updateCartItemsInUser({
+        items: remainingCartItems,
         setIsError,
-      )
+        navigate,
+      })
+      setUser({ ...user, addToCartItems: remainingCartItems })
 
       // Update createOrder
       const remainingCreateOrderItems = formattedCreateOrder.item.filter(
@@ -415,17 +422,17 @@ export default function CartPage() {
         products: remainingCreateOrderItems,
         userId,
       }
-      await fetchCreateOrderByUserIdAndUpdate(
+      await fetchCreateOrderByUserIdAndUpdate({
         userId,
         createOrder,
-        undefined,
         setIsError,
-      )
+        navigate,
+      })
 
       setIsRemoveFromCart(true)
       setUpdated(true)
 
-      toast("Product remove from cart")
+      toast.success("Product remove from cart")
     } catch (error) {
       if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
         console.error(error)
@@ -442,12 +449,12 @@ export default function CartPage() {
         products: formattedCreateOrder.item,
         userId,
       }
-      await fetchCreateOrderByUserIdAndUpdate(
+      await fetchCreateOrderByUserIdAndUpdate({
         userId,
         createOrder,
-        undefined,
         setIsError,
-      )
+        navigate,
+      })
       setConfirmOrder(true)
       setUpdated(true)
     } catch (error) {
@@ -458,8 +465,13 @@ export default function CartPage() {
     }
   }
 
-  if (isError) return <Error />
-  if (loading) return <CartPageShimmer />
+  if (isError) {
+    return <Error />
+  }
+
+  if (!Object.keys(user).length) {
+    return
+  }
 
   return (
     <>
@@ -480,112 +492,220 @@ export default function CartPage() {
         placeHolder="Search Product"
         search={search}
       />
-      <main className="bg-body-secondary pb-3">
-        <div className="container">
-          <h3 className="py-4 text-center">My Cart</h3>
-          <div
-            className={`d-md-flex justify-content-between align-items-start ${styles.cartContainer}`}
-          >
-            <section className={`${styles.productsInCurt}`}>
-              {!!ProductsInCart &&
-                ProductsInCart.map((product) => {
-                  return (
-                    <div key={product.id} className="row mb-3">
-                      <div className="col-sm-12 col-md-12 mb-3">
-                        <Link
-                          className="text-decoration-none"
-                          to={`/productDetails/${product.id}`}
-                        >
-                          <div
-                            className={`card flex-lg-row gap-4 ${styles.productCardInCart} m-auto`}
+      {loading ? (
+        <CartPageShimmer />
+      ) : (
+        <main className="bg-body-secondary pb-3">
+          <div className="container">
+            <h3 className="py-4 text-center">My Cart</h3>
+            <div
+              className={`d-md-flex justify-content-between align-items-start ${styles.cartContainer}`}
+            >
+              <section className={`${styles.productsInCurt}`}>
+                {!!ProductsInCart &&
+                  ProductsInCart.map((product) => {
+                    return (
+                      <div key={product.id} className="row mb-3">
+                        <div className="col-sm-12 col-md-12 mb-3">
+                          <Link
+                            className="text-decoration-none"
+                            to={`/productDetails/${product.id}`}
                           >
-                            <img
-                              src={product.url}
-                              alt="productImage"
-                              className={`${styles.imageOnProductCurt}`}
-                            />
-                            <div className="card-body d-flex flex-column justify-content-between pt-0 pt-lg-2">
-                              <div>
-                                <p
-                                  className={`lh-sm fs-5 fw-bold m-0 mb-2 ${styles.productNameOnCartPage} overflow-hidden`}
-                                >
-                                  {product.name.length > 61
-                                    ? product.name.slice(0, 60).concat("...")
-                                    : product.name}
-                                </p>
+                            <div
+                              className={`card flex-lg-row gap-4 ${styles.productCardInCart} m-auto`}
+                            >
+                              <img
+                                src={product.url}
+                                alt="productImage"
+                                className={`${styles.imageOnProductCurt}`}
+                              />
+                              <div className="card-body d-flex flex-column justify-content-between pt-0 pt-lg-2">
                                 <div>
-                                  <span className="fw-bold fs-5">
-                                    ₹
-                                    {Math.round(
-                                      product.price -
-                                        (product.price *
-                                          (Number(
-                                            product.offer.replace("%", ""),
-                                          )
-                                            ? Number(
-                                                product.offer.replace("%", ""),
-                                              )
-                                            : Number(
-                                                product.discount.replace(
-                                                  "%",
-                                                  "",
-                                                ),
-                                              ))) /
-                                          100,
-                                    )}
-                                  </span>
-                                  <span className="text-decoration-line-through ms-2">
-                                    ₹{product.price}
-                                  </span>
-                                </div>
-                                <p className="fw-bold fs-5 text-body-tertiary">
-                                  {Number(product.offer.replace("%", ""))
-                                    ? product.offer
-                                    : product.discount}{" "}
-                                  off
-                                </p>
-                                <div className="mb-2">
-                                  <span
-                                    className={`fw-bold me-2 ${styles.quantityText}`}
+                                  <p
+                                    className={`lh-sm fs-5 fw-bold m-0 mb-2 ${styles.productNameOnCartPage} overflow-hidden`}
                                   >
-                                    Quantity:{" "}
-                                  </span>
-                                  <div
-                                    className={`${styles.quantityBtnContainer} mb-3`}
-                                  >
-                                    <button
-                                      className="rounded-circle border border-1"
-                                      style={{
-                                        width: "30px",
-                                        height: "30px",
-                                      }}
-                                      onClick={async (e) => {
-                                        try {
-                                          // To stop Event Bubbling
-                                          e.preventDefault()
-                                          e.stopPropagation()
+                                    {product.name.length > 61
+                                      ? product.name.slice(0, 60).concat("...")
+                                      : product.name}
+                                  </p>
+                                  <div>
+                                    <span className="fw-bold fs-5">
+                                      ₹
+                                      {Math.round(
+                                        product.price -
+                                          (product.price *
+                                            (Number(
+                                              product.offer.replace("%", ""),
+                                            )
+                                              ? Number(
+                                                  product.offer.replace(
+                                                    "%",
+                                                    "",
+                                                  ),
+                                                )
+                                              : Number(
+                                                  product.discount.replace(
+                                                    "%",
+                                                    "",
+                                                  ),
+                                                ))) /
+                                            100,
+                                      )}
+                                    </span>
+                                    <span className="text-decoration-line-through ms-2">
+                                      ₹{product.price}
+                                    </span>
+                                  </div>
+                                  <p className="fw-bold fs-5 text-body-tertiary">
+                                    {Number(product.offer.replace("%", ""))
+                                      ? product.offer
+                                      : product.discount}{" "}
+                                    off
+                                  </p>
+                                  <div className="mb-2">
+                                    <span
+                                      className={`fw-bold me-2 ${styles.quantityText}`}
+                                    >
+                                      Quantity:{" "}
+                                    </span>
+                                    <div
+                                      className={`${styles.quantityBtnContainer} mb-3`}
+                                    >
+                                      <button
+                                        className="rounded-circle border border-1"
+                                        style={{
+                                          width: "30px",
+                                          height: "30px",
+                                        }}
+                                        onClick={async (e) => {
+                                          try {
+                                            // To stop Event Bubbling
+                                            e.preventDefault()
+                                            e.stopPropagation()
 
-                                          let inputElementValue = Number(
-                                            e.target.nextElementSibling.value,
-                                          )
-                                          if (inputElementValue > 1) {
+                                            let inputElementValue = Number(
+                                              e.target.nextElementSibling.value,
+                                            )
+                                            if (inputElementValue > 1) {
+                                              // Update the input element value
+                                              e.target.nextElementSibling.value =
+                                                --inputElementValue
+
+                                              // Update createOrder in Database
+                                              product.quantity = Number(
+                                                e.target.nextElementSibling
+                                                  .value,
+                                              )
+                                              const createOrder = {
+                                                products: ProductsInCart,
+                                                userId,
+                                              }
+                                              await fetchCreateOrderByUserIdAndUpdate(
+                                                {
+                                                  userId,
+                                                  createOrder,
+                                                  setIsError,
+                                                  navigate,
+                                                },
+                                              )
+
+                                              // Update user in Database
+                                              const clothItem =
+                                                user.addToCartItems.find(
+                                                  (item) =>
+                                                    item.id === product.id,
+                                                )
+                                              clothItem.quantity = Number(
+                                                e.target.nextElementSibling
+                                                  .value,
+                                              )
+                                              await updateCartItemsInUser({
+                                                items: user.addToCartItems,
+                                                setIsError,
+                                                navigate,
+                                              })
+
+                                              // Update finalClothsData in memory
+                                              const cloth =
+                                                finalClothsData.find(
+                                                  (cloth) =>
+                                                    cloth.id === product.id,
+                                                )
+                                              cloth.quantity = Number(
+                                                e.target.nextElementSibling
+                                                  .value,
+                                              )
+
+                                              // To update the variables present in this page
+                                              setUpdated(true)
+                                            }
+                                          } catch (error) {
+                                            if (
+                                              import.meta.env.VITE_MODE ===
+                                              "DEVELOPMENT"
+                                            ) {
+                                              console.error(error)
+                                            }
+                                            setIsError(error.message)
+                                          }
+                                        }}
+                                      >
+                                        {" "}
+                                        -{" "}
+                                      </button>
+                                      <input
+                                        type="text"
+                                        defaultValue={product.quantity || 1}
+                                        style={{
+                                          width: "30px",
+                                          textAlign: "center",
+                                        }}
+                                        className="mx-2"
+                                        onChange={(e) => {
+                                          if (Number(e.target.value) >= 0) {
+                                            product.quantity = Number(
+                                              e.target.value,
+                                            )
+                                            setUpdated(true)
+                                          }
+                                        }}
+                                      />
+                                      <button
+                                        className="rounded-circle border border-1"
+                                        style={{
+                                          width: "30px",
+                                          height: "30px",
+                                        }}
+                                        onClick={async (e) => {
+                                          try {
+                                            // To stop Event Bubbling
+                                            e.preventDefault()
+                                            e.stopPropagation()
+
                                             // Update the input element value
-                                            e.target.nextElementSibling.value =
-                                              --inputElementValue
+                                            let inputElementValue = Number(
+                                              e.target.previousElementSibling
+                                                .value,
+                                            )
+                                            e.target.previousElementSibling.value =
+                                              ++inputElementValue
 
                                             // Update createOrder in Database
                                             product.quantity = Number(
-                                              e.target.nextElementSibling.value,
+                                              e.target.previousElementSibling
+                                                .value,
                                             )
                                             const createOrder = {
                                               products: ProductsInCart,
                                               userId,
                                             }
                                             await fetchCreateOrderByUserIdAndUpdate(
-                                              userId,
-                                              createOrder,
-                                              undefined,
-                                              setIsError,
+                                              {
+                                                userId,
+                                                createOrder,
+                                                setIsError,
+                                                navigate,
+                                              },
                                             )
 
                                             // Update user in Database
@@ -595,14 +715,14 @@ export default function CartPage() {
                                                   item.id === product.id,
                                               )
                                             clothItem.quantity = Number(
-                                              e.target.nextElementSibling.value,
+                                              e.target.previousElementSibling
+                                                .value,
                                             )
-                                            await updateCartItemsInUser(
-                                              user._id,
-                                              user.addToCartItems,
-                                              undefined,
+                                            await updateCartItemsInUser({
+                                              items: user.addToCartItems,
                                               setIsError,
-                                            )
+                                              navigate,
+                                            })
 
                                             // Update finalClothsData in memory
                                             const cloth = finalClothsData.find(
@@ -610,319 +730,237 @@ export default function CartPage() {
                                                 cloth.id === product.id,
                                             )
                                             cloth.quantity = Number(
-                                              e.target.nextElementSibling.value,
+                                              e.target.previousElementSibling
+                                                .value,
                                             )
 
                                             // To update the variables present in this page
                                             setUpdated(true)
+                                          } catch (error) {
+                                            if (
+                                              import.meta.env.VITE_MODE ===
+                                              "DEVELOPMENT"
+                                            ) {
+                                              console.error(error)
+                                            }
+                                            setIsError(error.message)
                                           }
-                                        } catch (error) {
-                                          if (
-                                            import.meta.env.VITE_MODE ===
-                                            "DEVELOPMENT"
-                                          ) {
-                                            console.error(error)
-                                          }
-                                          setIsError(error.message)
-                                        }
-                                      }}
+                                        }}
+                                      >
+                                        {" "}
+                                        +{" "}
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="mb-2">
+                                    <span
+                                      className={`${styles.sizeText} fw-bold me-1 me-xl-3`}
                                     >
-                                      {" "}
-                                      -{" "}
-                                    </button>
-                                    <input
-                                      type="text"
-                                      defaultValue={product.quantity || 1}
-                                      style={{
-                                        width: "30px",
-                                        textAlign: "center",
-                                      }}
-                                      className="mx-2"
-                                      onChange={(e) => {
-                                        if (Number(e.target.value) >= 0) {
-                                          product.quantity = Number(
-                                            e.target.value,
-                                          )
-                                          setUpdated(true)
-                                        }
-                                      }}
-                                    />
-                                    <button
-                                      className="rounded-circle border border-1"
-                                      style={{
-                                        width: "30px",
-                                        height: "30px",
-                                      }}
-                                      onClick={async (e) => {
-                                        try {
-                                          // To stop Event Bubbling
-                                          e.preventDefault()
-                                          e.stopPropagation()
-
-                                          // Update the input element value
-                                          let inputElementValue = Number(
-                                            e.target.previousElementSibling
-                                              .value,
-                                          )
-                                          e.target.previousElementSibling.value =
-                                            ++inputElementValue
-
-                                          // Update createOrder in Database
-                                          product.quantity = Number(
-                                            e.target.previousElementSibling
-                                              .value,
-                                          )
-                                          const createOrder = {
-                                            products: ProductsInCart,
-                                            userId,
-                                          }
-                                          await fetchCreateOrderByUserIdAndUpdate(
-                                            userId,
-                                            createOrder,
-                                            undefined,
-                                            setIsError,
-                                          )
-
-                                          // Update user in Database
-                                          const clothItem =
-                                            user.addToCartItems.find(
-                                              (item) => item.id === product.id,
-                                            )
-                                          clothItem.quantity = Number(
-                                            e.target.previousElementSibling
-                                              .value,
-                                          )
-                                          await updateCartItemsInUser(
-                                            user._id,
-                                            user.addToCartItems,
-                                            undefined,
-                                            setIsError,
-                                          )
-
-                                          // Update finalClothsData in memory
-                                          const cloth = finalClothsData.find(
-                                            (cloth) => cloth.id === product.id,
-                                          )
-                                          cloth.quantity = Number(
-                                            e.target.previousElementSibling
-                                              .value,
-                                          )
-
-                                          // To update the variables present in this page
-                                          setUpdated(true)
-                                        } catch (error) {
-                                          if (
-                                            import.meta.env.VITE_MODE ===
-                                            "DEVELOPMENT"
-                                          ) {
-                                            console.error(error)
-                                          }
-                                          setIsError(error.message)
-                                        }
-                                      }}
+                                      Size:{" "}
+                                    </span>
+                                    <div
+                                      className={`${styles.sizeBtnContainer}`}
                                     >
-                                      {" "}
-                                      +{" "}
-                                    </button>
+                                      <button
+                                        className="border border-1 me-2 mb-2"
+                                        style={{
+                                          backgroundColor:
+                                            product.size === "S" ? "green" : "",
+                                          color:
+                                            product.size === "S" ? "white" : "",
+                                        }}
+                                        onClick={(e) =>
+                                          selectSizeFunction(e, product, "S")
+                                        }
+                                      >
+                                        S
+                                      </button>
+                                      <button
+                                        className="border border-1 me-2 mb-2"
+                                        style={{
+                                          backgroundColor:
+                                            product.size === "M" ? "green" : "",
+                                          color:
+                                            product.size === "M" ? "white" : "",
+                                        }}
+                                        onClick={(e) =>
+                                          selectSizeFunction(e, product, "M")
+                                        }
+                                      >
+                                        M
+                                      </button>
+                                      <button
+                                        className="border border-1 me-2 mb-2"
+                                        style={{
+                                          backgroundColor:
+                                            product.size === "L" ? "green" : "",
+                                          color:
+                                            product.size === "L" ? "white" : "",
+                                        }}
+                                        onClick={(e) =>
+                                          selectSizeFunction(e, product, "L")
+                                        }
+                                      >
+                                        L
+                                      </button>
+                                      <button
+                                        className="border border-1 me-2 mb-2"
+                                        style={{
+                                          backgroundColor:
+                                            product.size === "XL"
+                                              ? "green"
+                                              : "",
+                                          color:
+                                            product.size === "XL"
+                                              ? "white"
+                                              : "",
+                                        }}
+                                        onClick={(e) =>
+                                          selectSizeFunction(e, product, "XL")
+                                        }
+                                      >
+                                        XL
+                                      </button>
+                                      <button
+                                        className="border border-1 mb-2"
+                                        style={{
+                                          backgroundColor:
+                                            product.size === "XXL"
+                                              ? "green"
+                                              : "",
+                                          color:
+                                            product.size === "XXL"
+                                              ? "white"
+                                              : "",
+                                        }}
+                                        onClick={(e) =>
+                                          selectSizeFunction(e, product, "XXL")
+                                        }
+                                      >
+                                        XXL
+                                      </button>
+                                    </div>
                                   </div>
                                 </div>
-                                <div className="mb-2">
-                                  <span
-                                    className={`${styles.sizeText} fw-bold me-1 me-xl-3`}
+                                <div>
+                                  <button
+                                    className="btn btn-secondary w-100 my-2"
+                                    value={product.id}
+                                    onClick={(e) => removeFromCart(e, product)}
                                   >
-                                    Size:{" "}
-                                  </span>
-                                  <div className={`${styles.sizeBtnContainer}`}>
-                                    <button
-                                      className="border border-1 me-2 mb-2"
-                                      style={{
-                                        backgroundColor:
-                                          product.size === "S" ? "green" : "",
-                                        color:
-                                          product.size === "S" ? "white" : "",
-                                      }}
-                                      onClick={(e) =>
-                                        selectSizeFunction(e, product, "S")
-                                      }
-                                    >
-                                      S
-                                    </button>
-                                    <button
-                                      className="border border-1 me-2 mb-2"
-                                      style={{
-                                        backgroundColor:
-                                          product.size === "M" ? "green" : "",
-                                        color:
-                                          product.size === "M" ? "white" : "",
-                                      }}
-                                      onClick={(e) =>
-                                        selectSizeFunction(e, product, "M")
-                                      }
-                                    >
-                                      M
-                                    </button>
-                                    <button
-                                      className="border border-1 me-2 mb-2"
-                                      style={{
-                                        backgroundColor:
-                                          product.size === "L" ? "green" : "",
-                                        color:
-                                          product.size === "L" ? "white" : "",
-                                      }}
-                                      onClick={(e) =>
-                                        selectSizeFunction(e, product, "L")
-                                      }
-                                    >
-                                      L
-                                    </button>
-                                    <button
-                                      className="border border-1 me-2 mb-2"
-                                      style={{
-                                        backgroundColor:
-                                          product.size === "XL" ? "green" : "",
-                                        color:
-                                          product.size === "XL" ? "white" : "",
-                                      }}
-                                      onClick={(e) =>
-                                        selectSizeFunction(e, product, "XL")
-                                      }
-                                    >
-                                      XL
-                                    </button>
-                                    <button
-                                      className="border border-1 mb-2"
-                                      style={{
-                                        backgroundColor:
-                                          product.size === "XXL" ? "green" : "",
-                                        color:
-                                          product.size === "XXL" ? "white" : "",
-                                      }}
-                                      onClick={(e) =>
-                                        selectSizeFunction(e, product, "XXL")
-                                      }
-                                    >
-                                      XXL
-                                    </button>
-                                  </div>
+                                    Remove From Cart
+                                  </button>
+                                  <button
+                                    className="btn btn-outline-secondary w-100"
+                                    value={product.id}
+                                    onClick={moveToWishlist}
+                                  >
+                                    {product.addToWishList
+                                      ? "Added To Wishlist"
+                                      : "Move To Wishlist"}
+                                  </button>
                                 </div>
-                              </div>
-                              <div>
-                                <button
-                                  className="btn btn-secondary w-100 my-2"
-                                  value={product.id}
-                                  onClick={(e) => removeFromCart(e, product)}
-                                >
-                                  Remove From Cart
-                                </button>
-                                <button
-                                  className="btn btn-outline-secondary w-100"
-                                  value={product.id}
-                                  onClick={moveToWishlist}
-                                >
-                                  {product.addToWishList
-                                    ? "Added To Wishlist"
-                                    : "Move To Wishlist"}
-                                </button>
                               </div>
                             </div>
-                          </div>
-                        </Link>
+                          </Link>
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
-            </section>
-            <section className={`bg-light px-5 py-4 ${styles.totalBill}`}>
-              <h3>Price Details</h3>
-              <hr />
-              <div>
-                <div className="my-3">
-                  <p className="d-inline-block w-50 m-0">Price</p>
-                  <p className="d-inline-block w-50 text-end m-0">
-                    ₹{Math.round(totalOrder)}
-                  </p>
-                </div>
-                <div className="my-3">
-                  <p className="d-inline-block w-50 m-0">Delivery Charges</p>
-                  <p className="d-inline-block w-50 text-end m-0">
-                    ₹{deliveryCharge ? Math.round(deliveryCharge) : 0}
-                  </p>
-                </div>
-              </div>
-              <hr />
-              <div>
-                <p className="d-inline-block w-50 m-0">Total Amount</p>
-                <p className="d-inline-block w-50 text-end m-0">
-                  ₹
-                  {totalOrder && deliveryCharge
-                    ? Math.round(totalOrder + deliveryCharge)
-                    : 0}
-                </p>
-              </div>
-              <br />
-              {!isOrderConfirmed && user && ProductsInCart.length > 0 && (
-                <button
-                  className="btn btn-warning w-100 my-2"
-                  onClick={(e) => proceedToOrder(e)}
-                >
-                  Proceed to Order
-                </button>
-              )}
-              {isOrderConfirmed && !user && (
-                <button
-                  className="btn btn-primary w-100 my-2"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    toast("Please login to your account")
-                  }}
-                >
-                  Place Order
-                </button>
-              )}
-              {isOrderConfirmed && user && !user.address.length && (
-                <button
-                  className="btn btn-primary w-100 my-2"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    toast("Please add your address")
-                  }}
-                >
-                  Place Order
-                </button>
-              )}
-              {isOrderConfirmed && user && user.address.length !== 0 && (
+                    )
+                  })}
+              </section>
+              <section className={`bg-light px-5 py-4 ${styles.totalBill}`}>
+                <h3>Price Details</h3>
+                <hr />
                 <div>
-                  {ProductsInCart &&
-                  formattedCreateOrder.item.filter((product) => product.size)
-                    .length === formattedCreateOrder.item.length ? (
-                    <Link
-                      to="/paymentMethods"
-                      className="btn btn-primary w-100"
-                    >
-                      Place Order
-                    </Link>
-                  ) : (
-                    <button
-                      className="btn btn-primary w-100"
-                      onClick={() =>
-                        ProductsInCart
-                          ? toast(
-                              "Please select size of all the products present in the cart",
-                            )
-                          : toast("There is no item in cart")
-                      }
-                    >
-                      Place Order
-                    </button>
-                  )}
+                  <div className="my-3">
+                    <p className="d-inline-block w-50 m-0">Price</p>
+                    <p className="d-inline-block w-50 text-end m-0">
+                      ₹{Math.round(totalOrder)}
+                    </p>
+                  </div>
+                  <div className="my-3">
+                    <p className="d-inline-block w-50 m-0">Delivery Charges</p>
+                    <p className="d-inline-block w-50 text-end m-0">
+                      ₹{deliveryCharge ? Math.round(deliveryCharge) : 0}
+                    </p>
+                  </div>
                 </div>
-              )}
-            </section>
+                <hr />
+                <div>
+                  <p className="d-inline-block w-50 m-0">Total Amount</p>
+                  <p className="d-inline-block w-50 text-end m-0">
+                    ₹
+                    {totalOrder && deliveryCharge
+                      ? Math.round(totalOrder + deliveryCharge)
+                      : 0}
+                  </p>
+                </div>
+                <br />
+                {!isOrderConfirmed && user && ProductsInCart.length > 0 && (
+                  <button
+                    className="btn btn-warning w-100 my-2"
+                    onClick={(e) => proceedToOrder(e)}
+                  >
+                    Proceed to Order
+                  </button>
+                )}
+                {isOrderConfirmed && !user && (
+                  <button
+                    className="btn btn-primary w-100 my-2"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      toast.info("Please login to your account")
+                    }}
+                  >
+                    Place Order
+                  </button>
+                )}
+                {isOrderConfirmed && user && !user.address.length && (
+                  <button
+                    className="btn btn-primary w-100 my-2"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      toast.info("Please add your address")
+                    }}
+                  >
+                    Place Order
+                  </button>
+                )}
+                {isOrderConfirmed && user && user.address.length !== 0 && (
+                  <div>
+                    {ProductsInCart &&
+                    formattedCreateOrder.item.filter((product) => product.size)
+                      .length === formattedCreateOrder.item.length ? (
+                      <Link
+                        to="/paymentMethods"
+                        className="btn btn-primary w-100"
+                      >
+                        Place Order
+                      </Link>
+                    ) : (
+                      <button
+                        className="btn btn-primary w-100"
+                        onClick={() =>
+                          ProductsInCart
+                            ? toast.info(
+                                "Please select size of all the products present in the cart",
+                              )
+                            : toast.error("There is no item in cart")
+                        }
+                      >
+                        Place Order
+                      </button>
+                    )}
+                  </div>
+                )}
+              </section>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      )}
+
       <Footer />
     </>
   )

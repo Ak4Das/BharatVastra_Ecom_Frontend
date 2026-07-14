@@ -1,10 +1,8 @@
-import { HeaderShimmer } from "../services/styledComponents.js"
 import styles from "../style_modules/shimmer_modules/UserProfileShimmer.module.css"
 
 export default function UserProfileShimmer() {
   return (
     <>
-      <HeaderShimmer />
       <main className="container">
         <div className="d-flex flex-column align-items-center mt-5">
           <div

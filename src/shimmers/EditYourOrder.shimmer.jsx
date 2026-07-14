@@ -1,11 +1,8 @@
-import { HeaderShimmer } from "../services/styledComponents.js"
 import styles from "../style_modules/shimmer_modules/EditYourOrderShimmer.module.css"
 
 export default function EditYourOrderShimmer() {
   return (
     <>
-      <HeaderShimmer />
-      <h1 className="text-success fw-medium my-3 container">Edit Order</h1>
       <main className="container my-4">
         <section
           className={`editOrderSection1 p-3 d-flex column-gap-5 justify-content-between align-items-start deliveryAddressSection ${styles.section1}`}

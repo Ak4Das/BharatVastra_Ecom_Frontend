@@ -1,7 +1,7 @@
-import ClothsContext from "../contexts/ClothsContext"
+import context from "../contexts/CreateContexts"
 import { useContext } from "react"
 
-export default function GetUserId() {
-  const { userId } = useContext(ClothsContext)
-  return userId
+export default function GetUser() {
+  const { user, setUser } = useContext(context)
+  return { user, setUser }
 }

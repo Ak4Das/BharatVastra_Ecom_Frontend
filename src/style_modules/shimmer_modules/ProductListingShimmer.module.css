@@ -10,10 +10,6 @@
   background-color: #ccc;
 }
 
-.main {
-  width: 100vw;
-}
-
 @media (max-width: 420px) {
   .heading {
     width: 200px;

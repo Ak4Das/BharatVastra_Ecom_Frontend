@@ -1,86 +1,132 @@
-import styles from "../style_modules/pages_modules/LoginForm.module.css"
-import { useState } from "react"
-import { Link } from "react-router-dom"
-import { saveNewUser } from "../services/FetchRequests"
-import Error from "../components/Error"
+import styles from "../style_modules/pages_modules/Login.module.css"
+import React, { useEffect, useState } from "react"
+import { useNavigate, Link } from "react-router-dom"
+import { fetchMe, login } from "../services/FetchRequests"
+import { toast } from "react-toastify"
+import { useFormik } from "formik"
+import { loginSchema } from "../schema/Login.schema"
+import GetUser from "../services/GetClothsData"
 
-export default function LoginForm() {
-  const [isError, setIsError] = useState("")
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  async function handleSubmit() {
-    try {
-      const user = {
-        name,
-        email,
-        password,
-        profileImage: "",
-        address: [],
-        addToCartItems: [],
-        addToWishlistItems: [],
+export default function Login() {
+  const [loading, setLoading] = useState(false)
+  const [error, setIsError] = useState("")
+  const navigate = useNavigate()
+
+  const initialValues = {
+    email: "",
+    password: "",
+  }
+
+  const { user, setUser } = GetUser()
+
+  const formik = useFormik({
+    initialValues: initialValues,
+    validationSchema: loginSchema,
+    enableReinitialize: true,
+    onSubmit: async (values, action) => {
+      try {
+        setLoading(true)
+
+        const response = await login({
+          body: values,
+          setIsError,
+          navigate,
+        })
+
+        if (response) {
+          localStorage.setItem("bv_token", response.token)
+
+          toast.success("Login Successful")
+
+          setTimeout(async () => {
+            await fetchMe({ setFunction: setUser, setIsError, navigate })
+            navigate("/")
+          }, 1500)
+        }
+      } catch (error) {
+        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+          console.error(error)
+        }
+        setIsError(error.message)
+      } finally {
+        setLoading(false)
       }
-      const newUser = await saveNewUser(user, undefined, setIsError)
-      localStorage.setItem("userId", newUser._id)
-      window.location.reload()
-    } catch (error) {
-      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
-        console.error(error)
-      }
-      setIsError(error.message)
+    },
+  })
+
+  const { values, errors, touched, handleChange, handleBlur, handleSubmit } =
+    formik
+
+  useEffect(() => {
+    if (error === "User not found.") {
+      toast.error("User not found please signup to continue.")
+      navigate("/signup")
     }
-  }
-
-  if (isError) {
-    return <Error />
-  }
+  }, [error])
 
   return (
-    <main
-      className={`card mx-auto my-5 ${styles.loginForm}`}
-      style={{ width: "50%", paddingInline: "48px", paddingBlock: "24px" }}
-    >
-      <h2 className="text-success">Login Form</h2>
-      <form className="mt-4">
-        <label htmlFor="name" className="form-label">
-          Full Name
-        </label>
-        <input
-          id="name"
-          type="text"
-          className="form-control"
-          onChange={(e) => setName(e.target.value)}
-        />
-        <br />
-        <label htmlFor="email" className="form-label">
-          Email
-        </label>
-        <input
-          id="email"
-          type="email"
-          className="form-control"
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <br />
-        <label htmlFor="password" className="form-label">
-          Password
-        </label>
-        <input
-          id="password"
-          type="text"
-          className="form-control"
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <br />
-        <br />
-        <Link
-          to="/userAddress"
-          className="btn btn-warning"
-          onClick={handleSubmit}
-        >
-          Submit
-        </Link>
-      </form>
-    </main>
+    <div className={styles.loginContainer}>
+      <div className={styles.loginCard}>
+        <div className={styles.cardHeader}>
+          <h2 className={styles.brandTitle}>Log in</h2>
+          <p className={styles.brandSubtitle}>
+            Log in to your system profile workspace
+          </p>
+        </div>
+
+        {error && <div className={styles.errorAlertBanner}>{error}</div>}
+
+        <form className={styles.loginForm} onSubmit={handleSubmit}>
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>Registered Email Address</label>
+            <input
+              className={styles.formInput}
+              type="email"
+              required
+              value={values.email}
+              name="email"
+              placeholder="name@example.com"
+              onChange={handleChange}
+              onBlur={handleBlur}
+            />
+            {errors.email && touched.email ? (
+              <p className={`text-danger my-0 ${styles.errorMessage}`}>
+                {errors.email}
+              </p>
+            ) : null}
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>Security Password</label>
+            <input
+              className={styles.formInput}
+              type="password"
+              required
+              value={values.password}
+              name="password"
+              placeholder="••••••••"
+              onChange={handleChange}
+              onBlur={handleBlur}
+            />
+            {errors.password && touched.password ? (
+              <p className={`text-danger my-0 ${styles.errorMessage}`}>
+                {errors.password}
+              </p>
+            ) : null}
+          </div>
+
+          <button className="btn btn-primary" type="submit" disabled={loading}>
+            {loading ? "Validating account..." : "Sign In"}
+          </button>
+        </form>
+
+        <div className={styles.cardFooter}>
+          Don't have an account?{" "}
+          <Link className={`text-primary ${styles.signupLink}`} to="/signup">
+            Sign up
+          </Link>
+        </div>
+      </div>
+    </div>
   )
 }

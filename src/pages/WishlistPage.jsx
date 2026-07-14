@@ -1,6 +1,6 @@
 import styles from "../style_modules/pages_modules/WishlistPage.module.css"
 import { useState, useEffect, useMemo, useCallback } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { toast } from "react-toastify"
 import Header from "../components/Header"
 import Footer from "../components/Footer.jsx"
@@ -8,26 +8,26 @@ import SearchInPage from "../components/SearchInPage"
 import Error from "../components/Error.jsx"
 import WishlistShimmer from "../shimmers/Wishlist.shimmer.jsx"
 import { Search } from "../services/Search"
-import GetUserId from "../services/GetClothsData.js"
+import GetUser from "../services/GetClothsData"
 import { syncUserAndCreateOrder } from "../services/Function.js"
 import {
   fetchCreateOrderByUserId,
   fetchCreateOrderByUserIdAndUpdate,
-  fetchUserById,
   updateCartItemsInUser,
   updateWishlistItemsInUser,
   fetchClothById,
 } from "../services/FetchRequests.js"
 
 export default function WishlistPage() {
-  const userId = GetUserId()
+  const { user, setUser } = GetUser()
+  const userId = user._id
+  const navigate = useNavigate()
 
   const [loading, setLoading] = useState(false)
   const [isError, setIsError] = useState("")
   const [clothsData, setClothsData] = useState([])
   const [search, setSearch] = useState("")
   const [isUpdated, setUpdated] = useState(false)
-  const [user, setUser] = useState(null)
   const [CreateOrderInDatabase, setCreateOrderInDatabase] = useState(null)
 
   useEffect(() => {
@@ -41,8 +41,13 @@ export default function WishlistPage() {
     }
     try {
       await Promise.all([
-        fetchCreateOrderByUserId(userId, setCreateOrderInDatabase, setIsError),
-        fetchUserById(userId, setUser, setIsError),
+        userId &&
+          fetchCreateOrderByUserId({
+            userId,
+            setFunction: setCreateOrderInDatabase,
+            setIsError,
+            navigate,
+          }),
       ])
     } catch (error) {
       if (import.meta.env.VITE_MODE === "DEVELOPMENT") console.error(error)
@@ -60,10 +65,16 @@ export default function WishlistPage() {
   useEffect(() => {
     async function fetchWishlistItems() {
       try {
-        if (user) {
+        if (Object.keys(user).length) {
           const itemsIds = user.addToWishlistItems.map((item) => item.id)
           const items = await Promise.all(
-            itemsIds.map((id) => fetchClothById(id, undefined, setIsError)),
+            itemsIds.map((id) =>
+              fetchClothById({
+                clothId: id,
+                setIsError,
+                navigate,
+              }),
+            ),
           )
           setClothsData(items)
         }
@@ -162,12 +173,12 @@ export default function WishlistPage() {
         const payload = { products: updatedOrderItems, userId }
         promises.push({
           name: "createOrder",
-          request: fetchCreateOrderByUserIdAndUpdate(
-            userId,
-            payload,
-            undefined,
+          request: fetchCreateOrderByUserIdAndUpdate({
+            userId: userId,
+            createOrder: payload,
             setIsError,
-          ),
+            navigate,
+          }),
         })
       }
 
@@ -187,13 +198,14 @@ export default function WishlistPage() {
       }
       promises.push({
         name: "user",
-        request: updateCartItemsInUser(
-          user._id,
-          updatedCartItems,
-          undefined,
+        request: updateCartItemsInUser({
+          items: updatedCartItems,
           setIsError,
-        ),
+          navigate,
+        }),
       })
+
+      setUser({ ...user, addToCartItems: updatedCartItems })
 
       const result = await Promise.all(
         promises.map((promise) => promise.request),
@@ -238,12 +250,12 @@ export default function WishlistPage() {
           btn.innerHTML = "Added To Cart"
           btn.style.backgroundColor = ""
           btn.style.color = ""
-        }, 5000)
+        }, 1000)
 
         // To update the variables present in this page
         setUpdated(true)
 
-        toast("Product added to cart😊")
+        toast.success("Product added to cart😊")
       }
     } catch (error) {
       if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
@@ -269,13 +281,14 @@ export default function WishlistPage() {
 
       promises.push({
         name: "user",
-        request: updateWishlistItemsInUser(
-          user._id,
-          remainingWishlistItem,
-          undefined,
+        request: updateWishlistItemsInUser({
+          items: remainingWishlistItem,
           setIsError,
-        ),
+          navigate,
+        }),
       })
+
+      setUser({ ...user, addToWishlistItems: remainingWishlistItem })
 
       // Update createOrder in Database
       const Product =
@@ -287,12 +300,12 @@ export default function WishlistPage() {
         const CreateOrder = { products: createOrder.item, userId }
         promises.push({
           name: "createOrder",
-          request: fetchCreateOrderByUserIdAndUpdate(
-            userId,
-            CreateOrder,
-            undefined,
+          request: fetchCreateOrderByUserIdAndUpdate({
+            userId: userId,
+            createOrder: CreateOrder,
             setIsError,
-          ),
+            navigate,
+          }),
         })
       }
 
@@ -324,7 +337,7 @@ export default function WishlistPage() {
         // To update the variables present in this page
         setUpdated(true)
 
-        toast("Product remove from wishlist")
+        toast.success("Product remove from wishlist")
       }
     } catch (error) {
       if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
@@ -338,8 +351,8 @@ export default function WishlistPage() {
     return <Error />
   }
 
-  if (loading) {
-    return <WishlistShimmer />
+  if (!Object.keys(user).length) {
+    return
   }
 
   return (
@@ -359,83 +372,90 @@ export default function WishlistPage() {
         placeHolder="Search Product"
         search={search}
       />
-      <main className="bg-body-secondary pb-3">
-        <div className="mx-5">
-          <h3 className="py-3 text-center">My Wishlist</h3>
-          <div className="row row-gap-4">
-            {finalWishlistProducts.map((product) => (
-              <div
-                key={product.id}
-                className={`col-sm-6 col-md-4 col-xl-3 col-xxl-2 ${styles.cardContainer}`}
-              >
-                <Link
-                  className="text-decoration-none"
-                  to={`/productDetails/${product.id}`}
+      {loading ? (
+        <WishlistShimmer />
+      ) : (
+        <main className="bg-body-secondary pb-3">
+          <div className="mx-5">
+            <h3 className="py-3 text-center">My Wishlist</h3>
+            <div className="row row-gap-4">
+              {finalWishlistProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className={`col-sm-6 col-md-4 col-xl-3 col-xxl-2 ${styles.cardContainer}`}
                 >
-                  <div className="card border border-0">
-                    <img
-                      src={product.url}
-                      alt="productImage"
-                      className="img-fluid"
-                      style={{ height: "300px" }}
-                    />
-                    <div className="card-body">
-                      <p
-                        className="text-center overflow-hidden"
-                        style={{ height: "75px" }}
-                      >
-                        {product.newArrival === true && (
-                          <span className="badge text-bg-success me-1">
-                            New
-                          </span>
-                        )}
-                        {!!Number(product.offer.replace("%", "")) && (
-                          <span className="badge text-bg-warning me-1">
-                            Diwali Offer
-                          </span>
-                        )}
-                        {product.name.length > 61
-                          ? product.name.slice(0, 60).concat("...")
-                          : product.name}
-                      </p>
-                      <p className="text-center fw-bold">
-                        <b>₹</b>
-                        {Math.round(
-                          product.price -
-                            (product.price *
-                              (Number(product.offer.replace("%", ""))
-                                ? Number(product.offer.replace("%", ""))
-                                : Number(product.discount.replace("%", "")))) /
-                              100,
-                        )}{" "}
-                        (
-                        {Number(product.offer.replace("%", ""))
-                          ? product.offer
-                          : product.discount}{" "}
-                        off)
-                      </p>
-                      <button
-                        className={`btn btn-secondary w-100 my-2 ${styles.moveToCart}`}
-                        value={product.id}
-                        onClick={moveToCart}
-                      >
-                        {product.addToCart ? "Added To Cart" : "Move To Cart"}
-                      </button>
-                      <button
-                        className={`btn btn-outline-secondary w-100 ${styles.saveToWishlist}`}
-                        value={product.id}
-                        onClick={removeFromWishlist}
-                      >
-                        Remove From Wishlist
-                      </button>
+                  <Link
+                    className="text-decoration-none"
+                    to={`/productDetails/${product.id}`}
+                  >
+                    <div className="card border border-0">
+                      <img
+                        src={product.url}
+                        alt="productImage"
+                        className="img-fluid"
+                        style={{ height: "300px" }}
+                      />
+                      <div className="card-body">
+                        <p
+                          className="text-center overflow-hidden"
+                          style={{ height: "75px" }}
+                        >
+                          {product.newArrival === true && (
+                            <span className="badge text-bg-success me-1">
+                              New
+                            </span>
+                          )}
+                          {!!Number(product.offer.replace("%", "")) && (
+                            <span className="badge text-bg-warning me-1">
+                              Diwali Offer
+                            </span>
+                          )}
+                          {product.name.length > 61
+                            ? product.name.slice(0, 60).concat("...")
+                            : product.name}
+                        </p>
+                        <p className="text-center fw-bold">
+                          <b>₹</b>
+                          {Math.round(
+                            product.price -
+                              (product.price *
+                                (Number(product.offer.replace("%", ""))
+                                  ? Number(product.offer.replace("%", ""))
+                                  : Number(
+                                      product.discount.replace("%", ""),
+                                    ))) /
+                                100,
+                          )}{" "}
+                          (
+                          {Number(product.offer.replace("%", ""))
+                            ? product.offer
+                            : product.discount}{" "}
+                          off)
+                        </p>
+                        <button
+                          className={`btn btn-secondary w-100 my-2 ${styles.moveToCart}`}
+                          value={product.id}
+                          onClick={moveToCart}
+                        >
+                          {product.addToCart ? "Added To Cart" : "Move To Cart"}
+                        </button>
+                        <button
+                          className={`btn btn-outline-secondary w-100 ${styles.saveToWishlist}`}
+                          value={product.id}
+                          onClick={removeFromWishlist}
+                        >
+                          Remove From Wishlist
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              </div>
-            ))}
+                  </Link>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      )}
+
       <Footer />
     </>
   )

@@ -1,11 +1,9 @@
-import { HeaderShimmer } from "../services/styledComponents.js"
 import styles from "../style_modules/shimmer_modules/DiwaliSaleShimmer.module.css"
 import { images } from "../assets/images/images.js"
 
 export default function DiwaliSaleShimmer() {
   return (
     <>
-      <HeaderShimmer />
       <main className="mx-5 my-4">
         <section
           className={`diwaliSaleSection1 ${styles.diwaliSaleSection1}`}

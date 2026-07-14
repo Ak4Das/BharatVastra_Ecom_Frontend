@@ -1,7 +1,7 @@
 .slide1 {
   max-height: 800px;
   height: 78.6vw;
-  background-color: #ccc;
+  background-color: #DDDDDD;
 }
 
 @media (min-width: 500px) {

@@ -1,15 +1,16 @@
-import { HeaderShimmer } from "../services/styledComponents.js"
-import styles from "../style_modules/shimmer_modules/AppShimmer.module.css"
+import styles from "../style_modules/shimmer_modules/LandingPageShimmer.module.css"
 
-export default function AppShimmer() {
+export default function LandingPageShimmer() {
   return (
     <>
-      <HeaderShimmer />
       <main className="mx-5 my-4">
         <div className="row">
           <div className="col-12 col-sm-6 col-md-4 col-xl-2 col-xxl-2 mb-3">
             <div className={`${styles.categoryCard}`}>
-              <div className="card position-relative">
+              <div
+                className="card position-relative"
+                style={{ backgroundColor: "#DDDDDD" }}
+              >
                 <img
                   src="https://placehold.co/550x741?text=Loading..."
                   alt=""
@@ -20,7 +21,10 @@ export default function AppShimmer() {
           </div>
           <div className="col-12 col-sm-6 col-md-4 col-xl-2 col-xxl-2 mb-3">
             <div className={`${styles.categoryCard}`}>
-              <div className="card position-relative">
+              <div
+                className="card position-relative"
+                style={{ backgroundColor: "#DDDDDD" }}
+              >
                 <img
                   src="https://placehold.co/550x741?text=Loading..."
                   alt=""
@@ -31,7 +35,10 @@ export default function AppShimmer() {
           </div>
           <div className="col-12 col-sm-6 col-md-4 col-xl-2 col-xxl-2 mb-3">
             <div className={`${styles.categoryCard}`}>
-              <div className="card position-relative">
+              <div
+                className="card position-relative"
+                style={{ backgroundColor: "#DDDDDD" }}
+              >
                 <img
                   src="https://placehold.co/550x741?text=Loading..."
                   alt=""
@@ -42,7 +49,10 @@ export default function AppShimmer() {
           </div>
           <div className="col-12 col-sm-6 col-md-4 col-xl-2 col-xxl-2 mb-3">
             <div className={`${styles.categoryCard}`}>
-              <div className="card position-relative">
+              <div
+                className="card position-relative"
+                style={{ backgroundColor: "#DDDDDD" }}
+              >
                 <img
                   src="https://placehold.co/550x741?text=Loading..."
                   alt=""
@@ -53,7 +63,10 @@ export default function AppShimmer() {
           </div>
           <div className="col-12 col-sm-6 col-md-4 col-xl-2 col-xxl-2 mb-3">
             <div className={`${styles.categoryCard}`}>
-              <div className="card position-relative">
+              <div
+                className="card position-relative"
+                style={{ backgroundColor: "#DDDDDD" }}
+              >
                 <img
                   src="https://placehold.co/550x741?text=Loading..."
                   alt=""
@@ -64,7 +77,10 @@ export default function AppShimmer() {
           </div>
           <div className="col-12 col-sm-6 col-md-4 col-xl-2 col-xxl-2 mb-3">
             <div className={`${styles.categoryCard}`}>
-              <div className="card position-relative">
+              <div
+                className="card position-relative"
+                style={{ backgroundColor: "#DDDDDD" }}
+              >
                 <img
                   src="https://placehold.co/550x741?text=Loading..."
                   alt=""

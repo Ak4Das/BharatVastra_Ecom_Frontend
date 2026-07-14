@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom"
 import { FooterWrapper } from "../services/styledComponents"
-import { FaDiscord, FaInstagram, FaYoutube } from "react-icons/fa"
+import { FaWhatsapp } from "react-icons/fa"
+import { MdMailOutline, MdOutlinePhone } from "react-icons/md"
 
 export default function Footer() {
   return (
@@ -13,7 +14,10 @@ export default function Footer() {
           </div>
 
           <div>
-            <Link to="/contactUs" className="btn text-light text-decoration-none">
+            <Link
+              to="/contactUs"
+              className="btn text-light text-decoration-none"
+            >
               Get Started
             </Link>
           </div>
@@ -30,24 +34,31 @@ export default function Footer() {
             </p>
           </div>
           <div className="footer-social">
-            <h3>Follow Us</h3>
+            <h3>Connect Us</h3>
             <div className="footer-social--icons">
-              <div>
-                <FaDiscord className="icons" />
-              </div>
-              <div>
-                <FaInstagram className="icons" />
-              </div>
-              <div>
-                <a href="/" target="_blank">
-                  <FaYoutube className="icons" />
-                </a>
-              </div>
+              <a href="tel:+919883620996" target="_blank">
+                <div>
+                  <MdOutlinePhone className="icons" />
+                </div>
+              </a>
+              <a href="https://wa.me/9883620996" target="_blank">
+                <div>
+                  <FaWhatsapp className="icons" />
+                </div>
+              </a>
+              <a
+                href="https://mail.google.com/mail/?view=cm&fs=1&to=akashdas02052@gmail.com&su=Hello&body=Hi%20Akash,"
+                target="_blank"
+              >
+                <div>
+                  <MdMailOutline className="icons" />
+                </div>
+              </a>
             </div>
           </div>
           <div className="footer-contact">
             <h3>Call Us</h3>
-            <h3>+91 1234567890</h3>
+            <h3>+91 9883620996</h3>
           </div>
         </div>
 

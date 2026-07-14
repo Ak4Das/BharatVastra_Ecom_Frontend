@@ -5,7 +5,8 @@ if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
   url = "https://e-commerce-website-backend-sooty.vercel.app"
 }
 
-export async function fetchCloths(params, setFunction, setIsError) {
+export async function fetchCloths(obj) {
+  const { params, setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -29,32 +30,45 @@ export async function fetchCloths(params, setFunction, setIsError) {
     const response = await fetch(
       `${url}/cloth?mainCategory=${mainCategory}&commonCategory=${commonCategory}&price=${price}&rating=${rating}&sortBy=${sortBy}&gender=${gender}&age=${age}&search=${search}&page=${page}&limit=${limit}`,
       {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
+        },
         signal: controller.signal,
       },
     )
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function fetchClothById(clothId, setFunction, setIsError) {
+export async function fetchClothById(obj) {
+  const { clothId, setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -63,31 +77,44 @@ export async function fetchClothById(clothId, setFunction, setIsError) {
 
   try {
     const response = await fetch(`${url}/cloth/${clothId}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
+      },
       signal: controller.signal,
     })
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function fetchNewArrivalCloths(query, setFunction, setIsError) {
+export async function fetchNewArrivalCloths(obj) {
+  const { query, setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -100,32 +127,45 @@ export async function fetchNewArrivalCloths(query, setFunction, setIsError) {
     const response = await fetch(
       `${url}/cloth/newArrive/true?page=${currentPage}&limit=${itemsPerPage}&search=${search}`,
       {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
+        },
         signal: controller.signal,
       },
     )
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function fetchDistinctCommonCategories(setFunction, setIsError) {
+export async function fetchDistinctCommonCategories(obj) {
+  const { setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -139,30 +179,36 @@ export async function fetchDistinctCommonCategories(setFunction, setIsError) {
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function fetchClothsByMainCategory(
-  mainCategory,
-  setFunction,
-  setIsError,
-) {
+export async function fetchClothsByMainCategory(obj) {
+  const { mainCategory, setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -171,35 +217,44 @@ export async function fetchClothsByMainCategory(
 
   try {
     const response = await fetch(`${url}/cloth/mainCategory/${mainCategory}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
+      },
       signal: controller.signal,
     })
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function fetchClothsByCommonCategory(
-  commonCategory,
-  setFunction,
-  setIsError,
-) {
+export async function fetchClothsByCommonCategory(obj) {
+  const { commonCategory, setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -210,37 +265,45 @@ export async function fetchClothsByCommonCategory(
     const response = await fetch(
       `${url}/cloth/commonCategory/${commonCategory}`,
       {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
+        },
         signal: controller.signal,
       },
     )
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function fetchOfferOnACategory(
-  commonCategory,
-  query,
-  setFunction,
-  setIsError,
-) {
+export async function fetchOfferOnACategory(obj) {
+  const { commonCategory, query, setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -253,32 +316,45 @@ export async function fetchOfferOnACategory(
     const response = await fetch(
       `${url}/cloth/offer/${commonCategory}?page=${page}&gender=${gender}&search=${search}`,
       {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
+        },
         signal: controller.signal,
       },
     )
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function fetchAllCategories(setFunction, setIsError) {
+export async function fetchAllCategories(obj) {
+  const { setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -292,26 +368,36 @@ export async function fetchAllCategories(setFunction, setIsError) {
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function fetchCategory(category, setFunction, setIsError) {
+export async function fetchCategory(obj) {
+  const { category, setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -320,31 +406,44 @@ export async function fetchCategory(category, setFunction, setIsError) {
 
   try {
     const response = await fetch(`${url}/category/${category}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
+      },
       signal: controller.signal,
     })
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function updateClothById(id, clothData, setFunction, setIsError) {
+export async function updateClothById(obj) {
+  const { id, clothData, setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -355,6 +454,7 @@ export async function updateClothById(id, clothData, setFunction, setIsError) {
     const response = await fetch(`${url}/cloth/update/${id}`, {
       method: "PATCH",
       headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
         "content-Type": "application/json",
       },
       body: JSON.stringify(clothData),
@@ -363,31 +463,36 @@ export async function updateClothById(id, clothData, setFunction, setIsError) {
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function fetchCreateOrderByUserIdAndUpdate(
-  userId,
-  createOrder,
-  setFunction,
-  setIsError,
-) {
+export async function fetchCreateOrderByUserIdAndUpdate(obj) {
+  const { userId, createOrder, setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -398,6 +503,7 @@ export async function fetchCreateOrderByUserIdAndUpdate(
     const response = await fetch(`${url}/createOrder/updateItems/${userId}`, {
       method: "PATCH",
       headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
         "content-Type": "application/json",
       },
       body: JSON.stringify(createOrder),
@@ -406,26 +512,36 @@ export async function fetchCreateOrderByUserIdAndUpdate(
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function fetchCreateOrder(setFunction, setIsError) {
+export async function fetchCreateOrder(obj) {
+  const { setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -434,35 +550,44 @@ export async function fetchCreateOrder(setFunction, setIsError) {
 
   try {
     const response = await fetch(`${url}/createOrder/`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
+      },
       signal: controller.signal,
     })
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function fetchCreateOrderByUserId(
-  userId,
-  setFunction,
-  setIsError,
-) {
+export async function fetchCreateOrderByUserId(obj) {
+  const { userId, setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -471,35 +596,44 @@ export async function fetchCreateOrderByUserId(
 
   try {
     const response = await fetch(`${url}/createOrder/${userId}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
+      },
       signal: controller.signal,
     })
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function fetchCreateOrderByUserIdAndDelete(
-  userId,
-  setFunction,
-  setIsError,
-) {
+export async function fetchCreateOrderByUserIdAndDelete(obj) {
+  const { userId, setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -508,32 +642,45 @@ export async function fetchCreateOrderByUserIdAndDelete(
 
   try {
     const response = await fetch(`${url}/createOrder/delete/userId/${userId}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
+      },
       method: "DELETE",
       signal: controller.signal,
     })
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function fetchAllUsers(setFunction, setIsError) {
+export async function fetchAllUsers(obj) {
+  const { setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -542,31 +689,44 @@ export async function fetchAllUsers(setFunction, setIsError) {
 
   try {
     const response = await fetch(`${url}/user/`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
+      },
       signal: controller.signal,
     })
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function fetchUserById(id, setFunction, setIsError) {
+export async function fetchMe(obj) {
+  const { setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -574,38 +734,45 @@ export async function fetchUserById(id, setFunction, setIsError) {
   }, 10000)
 
   try {
-    const response = await fetch(`${url}/user/${id}`, {
+    const response = await fetch(`${url}/user/me`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
+      },
       signal: controller.signal,
     })
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function updateUser(
-  id,
-  data,
-  setFunction,
-  setIsError,
-  setUpdated,
-) {
+export async function updateUser(obj) {
+  const { data, setFunction, setIsError, setUpdated, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -613,9 +780,10 @@ export async function updateUser(
   }, 10000)
 
   try {
-    const response = await fetch(`${url}/user/updateUser/${id}`, {
+    const response = await fetch(`${url}/user/updateUser`, {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
         "content-Type": "application/json",
       },
       body: JSON.stringify(data),
@@ -624,33 +792,37 @@ export async function updateUser(
 
     clearTimeout(timerId)
 
+    const Data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(Data.message)
     }
 
-    const Data = await response.json()
     setFunction && setFunction(Data.respondedData)
     setUpdated && setUpdated(true)
     return Data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
+
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function updateAddressOfUser(
-  id,
-  addresses,
-  setFunction,
-  setIsError,
-  setUpdated,
-) {
+export async function updateAddressOfUser(obj) {
+  const { addresses, setFunction, setIsError, setUpdated, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -658,9 +830,10 @@ export async function updateAddressOfUser(
   }, 10000)
 
   try {
-    const response = await fetch(`${url}/user/updateUserAddress/${id}`, {
+    const response = await fetch(`${url}/user/updateUserAddress`, {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
         "content-Type": "application/json",
       },
       body: JSON.stringify(addresses),
@@ -669,32 +842,37 @@ export async function updateAddressOfUser(
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     setUpdated && setUpdated(true)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
 
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
+
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function updateWishlistItemsInUser(
-  id,
-  items,
-  setFunction,
-  setIsError,
-) {
+export async function updateWishlistItemsInUser(obj) {
+  const { items, setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -702,9 +880,10 @@ export async function updateWishlistItemsInUser(
   }, 10000)
 
   try {
-    const response = await fetch(`${url}/user/updateWishlistItems/${id}`, {
+    const response = await fetch(`${url}/user/updateWishlistItems`, {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
         "content-Type": "application/json",
       },
       body: JSON.stringify(items),
@@ -713,31 +892,36 @@ export async function updateWishlistItemsInUser(
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function updateCartItemsInUser(
-  id,
-  items,
-  setFunction,
-  setIsError,
-) {
+export async function updateCartItemsInUser(obj) {
+  const { items, setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -745,9 +929,10 @@ export async function updateCartItemsInUser(
   }, 10000)
 
   try {
-    const response = await fetch(`${url}/user/updateCartItems/${id}`, {
+    const response = await fetch(`${url}/user/updateCartItems`, {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
         "content-Type": "application/json",
       },
       body: JSON.stringify(items),
@@ -756,26 +941,36 @@ export async function updateCartItemsInUser(
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function saveNewUser(newUser, setFunction, setIsError) {
+export async function signup(obj) {
+  const { newUser, setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -783,7 +978,7 @@ export async function saveNewUser(newUser, setFunction, setIsError) {
   }, 10000)
 
   try {
-    const response = await fetch(`${url}/user/saveUser`, {
+    const response = await fetch("http://localhost:3000/auth/signup", {
       method: "POST",
       headers: {
         "content-Type": "application/json",
@@ -794,26 +989,84 @@ export async function saveNewUser(newUser, setFunction, setIsError) {
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
-    setFunction && setFunction(data.respondedData)
-    return data.respondedData
+    setFunction && setFunction(data)
+    return data
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function saveCreateOrder(createOrder, setFunction, setIsError) {
+export async function login(obj) {
+  const { body, setFunction, setIsError, navigate } = obj
+  const controller = new AbortController()
+
+  const timerId = setTimeout(() => {
+    controller.abort()
+  }, 10000)
+
+  try {
+    const response = await fetch("http://localhost:3000/auth/login", {
+      method: "POST",
+      headers: {
+        "content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timerId)
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message)
+    }
+
+    setFunction && setFunction(data)
+    return data
+  } catch (error) {
+    clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
+
+    if (error.name === "AbortError") {
+      setIsError && setIsError("Request timeout")
+      return
+    }
+
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
+  }
+}
+
+export async function saveCreateOrder(obj) {
+  const { createOrder, setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -824,6 +1077,7 @@ export async function saveCreateOrder(createOrder, setFunction, setIsError) {
     const response = await fetch(`${url}/createOrder/saveItem`, {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
         "content-Type": "application/json",
       },
       body: JSON.stringify(createOrder),
@@ -832,26 +1086,36 @@ export async function saveCreateOrder(createOrder, setFunction, setIsError) {
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function saveNewOrder(newOrder, setFunction, setIsError) {
+export async function saveNewOrder(obj) {
+  const { newOrder, setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -862,6 +1126,7 @@ export async function saveNewOrder(newOrder, setFunction, setIsError) {
     const response = await fetch(`${url}/order/saveOrder`, {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
         "content-Type": "application/json",
       },
       body: JSON.stringify(newOrder),
@@ -870,26 +1135,36 @@ export async function saveNewOrder(newOrder, setFunction, setIsError) {
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function fetchAllOrders(setFunction, setIsError) {
+export async function fetchAllOrders(obj) {
+  const { setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -898,31 +1173,44 @@ export async function fetchAllOrders(setFunction, setIsError) {
 
   try {
     const response = await fetch(`${url}/order/`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
+      },
       signal: controller.signal,
     })
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function fetchAllOrdersByUserId(userId, setFunction, setIsError) {
+export async function fetchAllOrdersByUserId(obj) {
+  const { userId, setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -931,31 +1219,44 @@ export async function fetchAllOrdersByUserId(userId, setFunction, setIsError) {
 
   try {
     const response = await fetch(`${url}/order/user/${userId}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
+      },
       signal: controller.signal,
     })
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function fetchOrderByOrderId(orderId, setFunction, setIsError) {
+export async function fetchOrderByOrderId(obj) {
+  const { orderId, setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -964,31 +1265,44 @@ export async function fetchOrderByOrderId(orderId, setFunction, setIsError) {
 
   try {
     const response = await fetch(`${url}/order/${orderId}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
+      },
       signal: controller.signal,
     })
 
     clearTimeout(timerId)
 
+    const data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(data.message)
     }
 
-    const data = await response.json()
     setFunction && setFunction(data.respondedData)
     return data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function deleteOrderById(id, setIsError) {
+export async function deleteOrderById(obj) {
+  const { id, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -998,31 +1312,43 @@ export async function deleteOrderById(id, setIsError) {
   try {
     const response = await fetch(`${url}/order/delete/${id}`, {
       method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
+      },
       signal: controller.signal,
     })
 
     clearTimeout(timerId)
 
-    if (!response.ok) {
-      throw new Error("Request failed")
-    }
-
     const deletedOrder = await response.json()
+
+    if (!response.ok) {
+      throw new Error(deletedOrder.message)
+    }
 
     return deletedOrder.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }
 
-export async function updateOrder(id, data, setFunction, setIsError) {
+export async function updateOrder(obj) {
+  const { id, data, setFunction, setIsError, navigate } = obj
   const controller = new AbortController()
 
   const timerId = setTimeout(() => {
@@ -1033,6 +1359,7 @@ export async function updateOrder(id, data, setFunction, setIsError) {
     const response = await fetch(`${url}/order/update/${id}`, {
       method: "PATCH",
       headers: {
+        Authorization: `Bearer ${localStorage.getItem("bv_token")}`,
         "content-Type": "application/json",
       },
       body: JSON.stringify(data),
@@ -1041,21 +1368,30 @@ export async function updateOrder(id, data, setFunction, setIsError) {
 
     clearTimeout(timerId)
 
+    const Data = await response.json()
+
     if (!response.ok) {
-      throw new Error("Request failed")
+      throw new Error(Data.message)
     }
 
-    const Data = await response.json()
     setFunction && setFunction(Data.respondedData)
     return Data.respondedData
   } catch (error) {
     clearTimeout(timerId)
+
+    if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+      console.dir(error)
+    }
 
     if (error.name === "AbortError") {
       setIsError && setIsError("Request timeout")
       return
     }
 
-    throw error
+    if (error.message === "Access Denied: Invalid Token.") {
+      navigate && navigate("/login")
+    }
+
+    setIsError && setIsError(error.message)
   }
 }

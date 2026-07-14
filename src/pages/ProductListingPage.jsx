@@ -1,6 +1,6 @@
 import styles from "../style_modules/pages_modules/ProductListing.module.css"
 import { useState, useEffect, useCallback } from "react"
-import { useParams, Link } from "react-router-dom"
+import { useParams, Link, useNavigate } from "react-router-dom"
 import { toast } from "react-toastify"
 
 import Header from "../components/Header"
@@ -11,10 +11,9 @@ import ProductListingShimmer from "../shimmers/ProductListing.shimmer.jsx"
 import Footer from "../components/Footer.jsx"
 import Error from "../components/Error.jsx"
 
-import GetUserId from "../services/GetClothsData.js"
+import GetUser from "../services/GetClothsData"
 import {
   fetchCloths,
-  fetchUserById,
   fetchCreateOrderByUserId,
   updateCartItemsInUser,
   updateWishlistItemsInUser,
@@ -25,12 +24,13 @@ import { syncUserAndCreateOrder } from "../services/Function.js"
 
 export default function ProductListingPage() {
   const { mainCategory } = useParams()
-  const userId = GetUserId()
+  const { user, setUser } = GetUser()
+  const userId = user._id
+  const navigate = useNavigate()
 
   const [loading, setLoading] = useState(true)
   const [isError, setIsError] = useState("")
   const [products, setProducts] = useState([])
-  const [user, setUser] = useState(null)
   const [isUpdate, setUpdate] = useState(false)
 
   const [search, setSearch] = useState([])
@@ -85,7 +85,11 @@ export default function ProductListingPage() {
         limit: 12,
       }
 
-      const result = await fetchCloths(queryParams, undefined, setIsError)
+      const result = await fetchCloths({
+        params: queryParams,
+        setIsError,
+        navigate,
+      })
 
       if (result) {
         setProducts(result.respondedData || [])
@@ -118,19 +122,26 @@ export default function ProductListingPage() {
       if (!userId) return
       try {
         await Promise.all([
-          fetchCategory(mainCategory, setCategory, setIsError),
-          fetchUserById(userId, setUser, setIsError),
-          fetchCreateOrderByUserId(
-            userId,
-            setCreateOrderInDatabase,
+          fetchCategory({
+            category: mainCategory,
+            setFunction: setCategory,
             setIsError,
-          ),
+            navigate,
+          }),
+          fetchCreateOrderByUserId({
+            userId,
+            setFunction: setCreateOrderInDatabase,
+            setIsError,
+            navigate,
+          }),
         ])
         if (isUpdate) {
           setUpdate(false)
         }
       } catch (error) {
-        if (import.meta.env.VITE_MODE === "DEVELOPMENT") console.error(error)
+        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+          console.error(error)
+        }
       }
     }
     syncUserState()
@@ -177,12 +188,11 @@ export default function ProductListingPage() {
         })
         promises.push({
           name: "user",
-          request: updateCartItemsInUser(
-            user._id,
-            user.addToCartItems,
-            undefined,
+          request: updateCartItemsInUser({
+            items: user.addToCartItems,
             setIsError,
-          ),
+            navigate,
+          }),
         })
 
         // Update clothsData in memory
@@ -210,12 +220,12 @@ export default function ProductListingPage() {
           const CreateOrder = { products: createOrder.item, userId }
           promises.push({
             name: "createOrder",
-            request: fetchCreateOrderByUserIdAndUpdate(
-              userId,
-              CreateOrder,
-              undefined,
+            request: fetchCreateOrderByUserIdAndUpdate({
+              userId: userId,
+              createOrder: CreateOrder,
               setIsError,
-            ),
+              navigate,
+            }),
           })
         }
 
@@ -258,7 +268,7 @@ export default function ProductListingPage() {
           // To update the variables present in this page
           setUpdate(true)
 
-          toast("Product added to cart😊")
+          toast.success("Product added to cart😊")
         }
       }
     } catch (error) {
@@ -285,12 +295,11 @@ export default function ProductListingPage() {
         user.addToWishlistItems.push({ id: Number(e.target.value) })
         promises.push({
           name: "user",
-          request: updateWishlistItemsInUser(
-            user._id,
-            user.addToWishlistItems,
-            undefined,
+          request: updateWishlistItemsInUser({
+            items: user.addToWishlistItems,
             setIsError,
-          ),
+            navigate,
+          }),
         })
 
         // Update clothsData in memory
@@ -313,12 +322,12 @@ export default function ProductListingPage() {
           const CreateOrder = { products: createOrder.item, userId }
           promises.push({
             name: "createOrder",
-            request: fetchCreateOrderByUserIdAndUpdate(
-              userId,
-              CreateOrder,
-              undefined,
+            request: fetchCreateOrderByUserIdAndUpdate({
+              userId: userId,
+              createOrder: CreateOrder,
               setIsError,
-            ),
+              navigate,
+            }),
           })
         }
 
@@ -361,7 +370,7 @@ export default function ProductListingPage() {
           // To update the variables present in this page
           setUpdate(true)
 
-          toast("Product added to wishlist😊")
+          toast.success("Product added to wishlist😊")
         }
       }
     } catch (error) {
@@ -372,31 +381,39 @@ export default function ProductListingPage() {
     }
   }
 
-  const finalProducts = products.map((cloth) => {
-    const isClothPresentInCart =
-      user && user.addToCartItems.filter((item) => item.id === cloth.id)
-    if (isClothPresentInCart && isClothPresentInCart.length) {
-      cloth.addToCart = true
-      cloth.quantity = isClothPresentInCart[0].quantity
-        ? isClothPresentInCart[0].quantity
-        : 1
-      cloth.size = isClothPresentInCart[0].size
-        ? isClothPresentInCart[0].size
-        : ""
-    } else {
-      delete cloth.addToCart
-    }
-    const isClothPresentInWishlist =
-      user && user.addToWishlistItems.filter((item) => item.id === cloth.id)
-    if (isClothPresentInWishlist && isClothPresentInWishlist.length) {
-      cloth.addToWishList = true
-    } else {
-      delete cloth.addToWishList
-    }
-    return cloth
-  })
+  const finalProducts = Object.keys(user).length
+    ? products.map((cloth) => {
+        const isClothPresentInCart =
+          user && user.addToCartItems.filter((item) => item.id === cloth.id)
+        if (isClothPresentInCart && isClothPresentInCart.length) {
+          cloth.addToCart = true
+          cloth.quantity = isClothPresentInCart[0].quantity
+            ? isClothPresentInCart[0].quantity
+            : 1
+          cloth.size = isClothPresentInCart[0].size
+            ? isClothPresentInCart[0].size
+            : ""
+        } else {
+          delete cloth.addToCart
+        }
+        const isClothPresentInWishlist =
+          user && user.addToWishlistItems.filter((item) => item.id === cloth.id)
+        if (isClothPresentInWishlist && isClothPresentInWishlist.length) {
+          cloth.addToWishList = true
+        } else {
+          delete cloth.addToWishList
+        }
+        return cloth
+      })
+    : []
 
-  if (isError) return <Error />
+  if (isError) {
+    return <Error />
+  }
+
+  if (!Object.keys(user).length) {
+    return
+  }
 
   return (
     <>
@@ -571,7 +588,7 @@ export default function ProductListingPage() {
                                 onClick={(e) => {
                                   e.preventDefault()
                                   e.stopPropagation()
-                                  toast("Please login to your account")
+                                  toast.info("Please login to your account")
                                 }}
                               >
                                 {product.addToCart
@@ -597,7 +614,7 @@ export default function ProductListingPage() {
                                 onClick={(e) => {
                                   e.preventDefault()
                                   e.stopPropagation()
-                                  toast("Please login to your account")
+                                  toast.info("Please login to your account")
                                 }}
                               >
                                 {product.addToWishList

@@ -1,6 +1,6 @@
 import styles from "../style_modules/pages_modules/SaleProducts.module.css"
 import { useEffect, useState, useMemo, useCallback } from "react"
-import { useParams, Link } from "react-router-dom"
+import { useParams, Link, useNavigate } from "react-router-dom"
 import { toast } from "react-toastify"
 
 import Header from "../components/Header"
@@ -10,12 +10,11 @@ import SaleProductsShimmer from "../shimmers/SaleProducts.shimmer.jsx"
 import Footer from "../components/Footer.jsx"
 import Error from "../components/Error.jsx"
 
-import GetUserId from "../services/GetClothsData.js"
+import GetUser from "../services/GetClothsData"
 import {
   fetchOfferOnACategory,
   fetchCreateOrderByUserId,
   fetchCreateOrderByUserIdAndUpdate,
-  fetchUserById,
   updateCartItemsInUser,
   updateWishlistItemsInUser,
 } from "../services/FetchRequests.js"
@@ -23,10 +22,11 @@ import { syncUserAndCreateOrder } from "../services/Function.js"
 
 export default function SaleProducts() {
   const { commonCategory } = useParams()
-  const userId = GetUserId()
+  const { user, setUser } = GetUser()
+  const userId = user._id
+  const navigate = useNavigate()
 
   const [clothsData, setClothsData] = useState([])
-  const [user, setUser] = useState(null)
   const [createOrderInDatabase, setCreateOrderInDatabase] = useState(null)
 
   const [loading, setLoading] = useState(true)
@@ -43,12 +43,12 @@ export default function SaleProducts() {
     async function fetchUserMetadata() {
       try {
         await Promise.all([
-          fetchCreateOrderByUserId(
+          fetchCreateOrderByUserId({
             userId,
-            setCreateOrderInDatabase,
+            setFunction: setCreateOrderInDatabase,
             setIsError,
-          ),
-          fetchUserById(userId, setUser, setIsError),
+            navigate,
+          }),
         ])
         if (isUpdate) {
           setUpdate(false)
@@ -67,12 +67,13 @@ export default function SaleProducts() {
       try {
         setLoading(true)
 
-        const response = await fetchOfferOnACategory(
-          commonCategory.toLowerCase(),
-          { page, gender, search },
-          setClothsData,
+        const response = await fetchOfferOnACategory({
+          commonCategory: commonCategory.toLowerCase(),
+          query: { page, gender, search },
+          setFunction: setClothsData,
           setIsError,
-        )
+          navigate,
+        })
 
         if (response?.pagination) {
           setTotalPages(response.pagination.totalPages)
@@ -108,29 +109,31 @@ export default function SaleProducts() {
 
   const createOrder = { item: uniqueCreateOrderInDatabase }
 
-  const finalClothsData = clothsData.map((cloth) => {
-    const isClothPresentInCart =
-      user && user.addToCartItems.filter((item) => item.id === cloth.id)
-    if (isClothPresentInCart && isClothPresentInCart.length) {
-      cloth.addToCart = true
-      cloth.quantity = isClothPresentInCart[0].quantity
-        ? isClothPresentInCart[0].quantity
-        : 1
-      cloth.size = isClothPresentInCart[0].size
-        ? isClothPresentInCart[0].size
-        : ""
-    } else {
-      delete cloth.addToCart
-    }
-    const isClothPresentInWishlist =
-      user && user.addToWishlistItems.filter((item) => item.id === cloth.id)
-    if (isClothPresentInWishlist && isClothPresentInWishlist.length) {
-      cloth.addToWishList = true
-    } else {
-      delete cloth.addToWishList
-    }
-    return cloth
-  })
+  const finalClothsData = Object.keys(user).length
+    ? clothsData.map((cloth) => {
+        const isClothPresentInCart =
+          user && user.addToCartItems.filter((item) => item.id === cloth.id)
+        if (isClothPresentInCart && isClothPresentInCart.length) {
+          cloth.addToCart = true
+          cloth.quantity = isClothPresentInCart[0].quantity
+            ? isClothPresentInCart[0].quantity
+            : 1
+          cloth.size = isClothPresentInCart[0].size
+            ? isClothPresentInCart[0].size
+            : ""
+        } else {
+          delete cloth.addToCart
+        }
+        const isClothPresentInWishlist =
+          user && user.addToWishlistItems.filter((item) => item.id === cloth.id)
+        if (isClothPresentInWishlist && isClothPresentInWishlist.length) {
+          cloth.addToWishList = true
+        } else {
+          delete cloth.addToWishList
+        }
+        return cloth
+      })
+    : []
 
   // Refactored Add to Cart Logic using Optimistic UI state updates
   const addToCart = async (e) => {
@@ -152,12 +155,11 @@ export default function SaleProducts() {
         })
         promises.push({
           name: "user",
-          request: updateCartItemsInUser(
-            user._id,
-            user.addToCartItems,
-            undefined,
+          request: updateCartItemsInUser({
+            items: user.addToCartItems,
             setIsError,
-          ),
+            navigate,
+          }),
         })
 
         // Update clothsData in memory
@@ -184,12 +186,12 @@ export default function SaleProducts() {
           const CreateOrder = { products: createOrder.item, userId }
           promises.push({
             name: "createOrder",
-            request: fetchCreateOrderByUserIdAndUpdate(
-              userId,
-              CreateOrder,
-              undefined,
+            request: fetchCreateOrderByUserIdAndUpdate({
+              userId: userId,
+              createOrder: CreateOrder,
               setIsError,
-            ),
+              navigate,
+            }),
           })
         }
 
@@ -232,7 +234,7 @@ export default function SaleProducts() {
           // To update the variables present in this page
           setUpdate(true)
 
-          toast("Product added to cart😊")
+          toast.success("Product added to cart😊")
         }
       }
     } catch (error) {
@@ -260,12 +262,11 @@ export default function SaleProducts() {
         user.addToWishlistItems.push({ id: Number(e.target.value) })
         promises.push({
           name: "user",
-          request: updateWishlistItemsInUser(
-            user._id,
-            user.addToWishlistItems,
-            undefined,
+          request: updateWishlistItemsInUser({
+            items: user.addToWishlistItems,
             setIsError,
-          ),
+            navigate,
+          }),
         })
 
         // Update clothsData in memory
@@ -288,12 +289,12 @@ export default function SaleProducts() {
           const CreateOrder = { products: createOrder.item, userId }
           promises.push({
             name: "createOrder",
-            request: fetchCreateOrderByUserIdAndUpdate(
-              userId,
-              CreateOrder,
-              undefined,
+            request: fetchCreateOrderByUserIdAndUpdate({
+              userId: userId,
+              createOrder: CreateOrder,
               setIsError,
-            ),
+              navigate,
+            }),
           })
         }
 
@@ -336,7 +337,7 @@ export default function SaleProducts() {
           // To update the variables present in this page
           setUpdate(true)
 
-          toast("Product added to wishlist😊")
+          toast.success("Product added to wishlist😊")
         }
       }
     } catch (error) {
@@ -347,7 +348,13 @@ export default function SaleProducts() {
     }
   }
 
-  if (isError) return <Error />
+  if (isError) {
+    return <Error />
+  }
+
+  if (!Object.keys(user).length) {
+    return
+  }
 
   return (
     <>
@@ -466,7 +473,7 @@ export default function SaleProducts() {
                                   onClick={(e) => {
                                     e.preventDefault()
                                     e.stopPropagation()
-                                    toast("Please login to your account")
+                                    toast.info("Please login to your account")
                                   }}
                                 >
                                   {product.addToCart
@@ -492,7 +499,7 @@ export default function SaleProducts() {
                                   onClick={(e) => {
                                     e.preventDefault()
                                     e.stopPropagation()
-                                    toast("Please login to your account")
+                                    toast.info("Please login to your account")
                                   }}
                                 >
                                   {product.addToWishList

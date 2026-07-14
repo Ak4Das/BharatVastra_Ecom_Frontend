@@ -1,10 +1,8 @@
-import { HeaderShimmer } from "../services/styledComponents.js"
 import styles from "../style_modules/shimmer_modules/WishlistShimmer.module.css"
 
 export default function WishlistShimmer() {
   return (
     <>
-      <HeaderShimmer />
       <main className="bg-body-secondary pb-3">
         <div className="mx-5">
           <h3 className="py-3 text-center">My Wishlist</h3>

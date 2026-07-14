@@ -1,10 +1,8 @@
-import { HeaderShimmer } from "../services/styledComponents.js"
 import styles from "../style_modules/shimmer_modules/ProductDetailsShimmer.module.css"
 
 export default function ProductDetailsShimmer() {
   return (
     <>
-      <HeaderShimmer />
       <main
         className={`bg-body-secondary py-3 py-sm-5 px-sm-5 ${styles.main}`}
       >

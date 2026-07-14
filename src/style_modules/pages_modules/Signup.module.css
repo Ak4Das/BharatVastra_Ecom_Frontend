@@ -1,20 +1,33 @@
+.card_container {
+  height: 100vh;
+}
+
+.signupForm {
+  box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+  border: none;
+}
+
+.hover_underline:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 991px) {
-  .loginForm {
+  .signupForm {
     width: 75% !important;
   }
 }
 @media (max-width: 499px) {
-  .loginForm {
+  .signupForm {
     width: 85% !important;
   }
 }
 @media (max-width: 400px) {
-  .loginForm {
+  .signupForm {
     padding-inline: 24px !important;
   }
 }
 @media (max-width: 291px) {
-  .loginForm {
+  .signupForm {
     width: 95% !important;
     padding-inline: 12px !important;
     padding-block: 12px !important;

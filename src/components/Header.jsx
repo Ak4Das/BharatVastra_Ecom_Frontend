@@ -23,7 +23,7 @@ export default function Header({
 
   useEffect(() => {
     async function fetchData() {
-      const result = await fetchDistinctCommonCategories()
+      const result = await fetchDistinctCommonCategories({})
       setCategories(result)
     }
     fetchData()
@@ -55,7 +55,7 @@ export default function Header({
 
   async function handleClick() {
     if (typeof search === "object") {
-      const distinctCommonCategories = await fetchDistinctCommonCategories()
+      const distinctCommonCategories = await fetchDistinctCommonCategories({})
       const searchProducts = input
         ? Search(distinctCommonCategories, input)
         : []
@@ -246,13 +246,14 @@ export default function Header({
           </div>
           <div
             className={`${styles.secondUlContainer} position-absolute none`}
-            style={{ zIndex: 3, top: "60px", right: "10px" }}
+            style={{ zIndex: 3, top: "50px", right: "10px" }}
           >
             <ul
-              className="d-flex flex-column  justify-content-between bg-body-tertiary p-3"
+              className="d-flex flex-column  justify-content-between p-3"
               style={{
                 height: "200px",
                 listStyleType: "none",
+                backgroundColor: "#e7e4e4",
               }}
             >
               <li

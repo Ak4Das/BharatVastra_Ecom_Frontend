@@ -1,21 +1,19 @@
 import styles from "../style_modules/pages_modules/UserProfile.module.css"
 import Header from "../components/Header"
 import { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
-import { fetchUserById, updateUser } from "../services/FetchRequests"
+import { Link, useNavigate } from "react-router-dom"
+import { updateUser } from "../services/FetchRequests"
 import UserProfileShimmer from "../shimmers/UserProfile.shimmer"
 import Footer from "../components/Footer"
-import GetUserId from "../services/GetClothsData"
+import GetUser from "../services/GetClothsData"
 import Error from "../components/Error"
 import { images } from "../assets/images/images"
 
 export default function UserProfile() {
   const [loading, setLoading] = useState(false)
   const [isError, setIsError] = useState("")
+  const navigate = useNavigate()
 
-  /* visible useState is used to if user press change profile image btn then 
-  the floating form to change profile image will open and if user will press the cross btn 
-  on the floating page then the floating form will disappear from the page */
   const [visible, setVisible] = useState(false)
 
   const [profileImage, setProfileImage] = useState("")
@@ -23,25 +21,16 @@ export default function UserProfile() {
   const [imageUrl, setImageUrl] = useState("")
   const [imagePath, setImagePath] = useState("")
 
-  // file useState is used to store user's selected image file
   const [file, setFile] = useState({})
 
-  const userId = GetUserId()
-  const [user, setUser] = useState(null)
-  const [isUpdated, setUpdated] = useState(false)
+  const { user, setUser } = GetUser()
+  const userId = user._id
 
-  // if (imagePath) {
-  //   const reader = new FileReader()
-  //   reader.onload = () => {
-  //     user.profileImageFile = reader.result
-  //     localStorage.setItem("user", JSON.stringify(user))
-  //   }
-  //   reader.readAsDataURL(file)
-  // }
+  const [isUpdated, setUpdated] = useState(false)
 
   async function updatePropertiesOfUser(userId, data) {
     try {
-      await updateUser(userId, data, undefined, setIsError, setUpdated)
+      await updateUser({ data, setIsError, setUpdated, navigate })
     } catch (error) {
       if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
         console.error(error)
@@ -52,20 +41,20 @@ export default function UserProfile() {
 
   useEffect(() => {
     if (profileImage && !edit) {
-      user.profileImage = profileImage
-      updatePropertiesOfUser(userId, { profileImage: user.profileImage })
+      const updatedUser = { ...user, profileImage }
+      updatePropertiesOfUser(userId, { profileImage: updatedUser.profileImage })
+      setUser(updatedUser)
     }
   }, [profileImage])
 
   async function removeProfileImage() {
     try {
-      user.profileImage = ""
-      await updateUser(
-        userId,
-        { profileImage: user.profileImage },
-        undefined,
+      const updatedUser = { ...user, profileImage: "" }
+      await updateUser({
+        data: { profileImage: updatedUser.profileImage },
         setIsError,
-      )
+      })
+      setUser(updatedUser)
       setEdit(false)
       setProfileImage("")
       setImageUrl("")
@@ -101,7 +90,6 @@ export default function UserProfile() {
     try {
       setLoading(true)
 
-      await fetchUserById(userId, setUser, setIsError)
       if (isUpdated) {
         setUpdated(false)
       }
@@ -123,231 +111,234 @@ export default function UserProfile() {
     return <Error />
   }
 
+  if (!Object.keys(user).length) {
+    return
+  }
+
   return (
     <>
+      <Header
+        position="static"
+        top="auto"
+        zIndex="auto"
+        isSearchBarNeeded={false}
+        userDetails={user}
+      />
       {loading || !user ? (
         <UserProfileShimmer />
       ) : (
-        <>
-          <Header
-            position="static"
-            top="auto"
-            zIndex="auto"
-            isSearchBarNeeded={false}
-            userDetails={user}
-          />
-          <main className="container">
-            <div className="d-flex flex-column align-items-center mt-5 position-relative">
-              <div
-                className="overflow-hidden rounded-circle"
-                style={{ width: "100px", height: "100px" }}
-              >
-                {user && user.profileImage ? (
-                  imagePath ? (
-                    <img
-                      src={URL.createObjectURL(file)}
-                      alt="profileImage"
-                      className="img-fluid w-100 h-100"
-                    />
-                  ) : (
-                    <img
-                      src={user.profileImage}
-                      alt="profileImage"
-                      className="img-fluid w-100 h-100"
-                    />
-                  )
-                ) : imagePath ? (
+        <main className="container">
+          <div className="d-flex flex-column align-items-center mt-5 position-relative">
+            <div
+              className="overflow-hidden rounded-circle"
+              style={{ width: "100px", height: "100px" }}
+            >
+              {user && user.profileImage ? (
+                imagePath ? (
                   <img
                     src={URL.createObjectURL(file)}
                     alt="profileImage"
                     className="img-fluid w-100 h-100"
                   />
                 ) : (
-                  <div className="bg-info w-100 h-100 fs-1 d-flex align-items-center justify-content-center">
-                    {user && user.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
-              </div>
-              <div
-                style={{ width: "25px", height: "25px", top: "70px" }}
-                className={`bg-white rounded-circle p-1 d-flex align-items-center justify-content-center ${styles.changeImage} position-absolute`}
-                title="Change Profile Image"
-              >
+                  <img
+                    src={user.profileImage}
+                    alt="profileImage"
+                    className="img-fluid w-100 h-100"
+                  />
+                )
+              ) : imagePath ? (
                 <img
-                  src={images.CameraIcon}
-                  alt="CameraIcon"
-                  className="img-fluid w-100"
-                  onClick={setVisibility}
+                  src={URL.createObjectURL(file)}
+                  alt="profileImage"
+                  className="img-fluid w-100 h-100"
                 />
-              </div>
-              <h2 className="mt-3">{user && user.name.toUpperCase()}</h2>
-              <h6>{user && user.email}</h6>
-              {visible && (
-                <div
-                  className={`card px-3 py-3 bg-light position-absolute top-50 start-50 ${styles.floatingCard}`}
-                  style={{
-                    width: "400px",
-                    zIndex: 6,
-                    boxShadow: "0px 0px 100px rgba(0, 0, 0, 0.4)",
-                  }}
-                >
-                  <section className="position-relative">
-                    <h2 className={`${styles.usrAccTextFloatingCard}`}>
-                      User Account
-                    </h2>
-                    <button className="border border-0 position-absolute end-0 top-0 bg-light">
-                      <img
-                        src={images.crossBtn}
-                        alt="crossBtn"
-                        className={`${styles.crossBtnFloatingCard}`}
-                        style={{ width: "20px" }}
-                        onClick={setVisibility}
-                      />
-                    </button>
-                  </section>
-                  <section className="mt-3">
-                    <h4 className={`${styles.profilePicTextFloatingCard}`}>
-                      Profile picture
-                    </h4>
-                    <p className={`${styles.floatingCardText}`}>
-                      A picture helps people recognize you and lets you know
-                      when you’re signed in to your account
-                    </p>
-                    <div
-                      className={`overflow-hidden rounded-circle mx-auto my-5 ${styles.floatingCardUserImage}`}
-                      style={{ width: "350px", height: "350px" }}
-                    >
-                      {user.profileImage ? (
-                        imagePath ? (
-                          <img
-                            src={URL.createObjectURL(file)}
-                            alt="profileImage"
-                            className="img-fluid w-100 h-100"
-                          />
-                        ) : (
-                          <img
-                            src={user.profileImage}
-                            alt="profileImage"
-                            className="img-fluid w-100 h-100"
-                          />
-                        )
-                      ) : imagePath ? (
+              ) : (
+                <div className="bg-info w-100 h-100 fs-1 d-flex align-items-center justify-content-center">
+                  {user && user.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+            <div
+              style={{ width: "25px", height: "25px", top: "70px" }}
+              className={`bg-white rounded-circle p-1 d-flex align-items-center justify-content-center ${styles.changeImage} position-absolute`}
+              title="Change Profile Image"
+            >
+              <img
+                src={images.CameraIcon}
+                alt="CameraIcon"
+                className="img-fluid w-100"
+                onClick={setVisibility}
+              />
+            </div>
+            <h2 className="mt-3">{user && user.name.toUpperCase()}</h2>
+            <h6>{user && user.email}</h6>
+            {visible && (
+              <div
+                className={`card px-3 py-3 bg-light position-absolute top-50 start-50 ${styles.floatingCard}`}
+                style={{
+                  width: "400px",
+                  zIndex: 6,
+                  boxShadow: "0px 0px 100px rgba(0, 0, 0, 0.4)",
+                }}
+              >
+                <section className="position-relative">
+                  <h2 className={`${styles.usrAccTextFloatingCard}`}>
+                    User Account
+                  </h2>
+                  <button className="border border-0 position-absolute end-0 top-0 bg-light">
+                    <img
+                      src={images.crossBtn}
+                      alt="crossBtn"
+                      className={`${styles.crossBtnFloatingCard}`}
+                      style={{ width: "20px" }}
+                      onClick={setVisibility}
+                    />
+                  </button>
+                </section>
+                <section className="mt-3">
+                  <h4 className={`${styles.profilePicTextFloatingCard}`}>
+                    Profile picture
+                  </h4>
+                  <p className={`${styles.floatingCardText}`}>
+                    A picture helps people recognize you and lets you know when
+                    you’re signed in to your account
+                  </p>
+                  <div
+                    className={`overflow-hidden rounded-circle mx-auto my-5 ${styles.floatingCardUserImage}`}
+                    style={{ width: "350px", height: "350px" }}
+                  >
+                    {user.profileImage ? (
+                      imagePath ? (
                         <img
                           src={URL.createObjectURL(file)}
                           alt="profileImage"
                           className="img-fluid w-100 h-100"
                         />
                       ) : (
-                        <div className="bg-info w-100 h-100 fs-1 d-flex align-items-center justify-content-center">
-                          {user.name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ display: `${edit ? "" : "none"}` }}>
-                      <input
-                        type="text"
-                        placeholder="Enter Image Url"
-                        className="form-control"
-                        onChange={(e) => {
-                          setImageUrl(e.target.value)
-                        }}
+                        <img
+                          src={user.profileImage}
+                          alt="profileImage"
+                          className="img-fluid w-100 h-100"
+                        />
+                      )
+                    ) : imagePath ? (
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt="profileImage"
+                        className="img-fluid w-100 h-100"
                       />
-                      <p className="my-0 text-center text-warning my-2">
-                        ---OR---
-                      </p>
-                      <input
-                        type="file"
-                        className="form-control mb-4"
-                        onChange={(e) => {
-                          const input = e.target
-                          setImagePath(input.value)
-                          setFile(e.target.files[0])
-                        }}
-                      />
-                    </div>
-                    <div
-                      className={`d-flex justify-content-between align-items-center ${styles.floatingCardBtns}`}
+                    ) : (
+                      <div className="bg-info w-100 h-100 fs-1 d-flex align-items-center justify-content-center">
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: `${edit ? "" : "none"}` }}>
+                    <input
+                      type="text"
+                      placeholder="Enter Image Url"
+                      className="form-control"
+                      onChange={(e) => {
+                        setImageUrl(e.target.value)
+                      }}
+                    />
+                    <p className="my-0 text-center text-warning my-2">
+                      ---OR---
+                    </p>
+                    <input
+                      type="file"
+                      className="form-control mb-4"
+                      onChange={(e) => {
+                        const input = e.target
+                        setImagePath(input.value)
+                        setFile(e.target.files[0])
+                      }}
+                    />
+                  </div>
+                  <div
+                    className={`d-flex justify-content-between align-items-center ${styles.floatingCardBtns}`}
+                  >
+                    <button
+                      className={`btn ${styles.floatingCardBtn} border border-0 rounded-pill p-2 ${styles.editImageUrl}`}
+                      onClick={editProfileImage}
                     >
-                      <button
-                        className={`btn ${styles.floatingCardBtn} border border-0 rounded-pill p-2 ${styles.editImageUrl}`}
-                        onClick={editProfileImage}
-                      >
-                        <i className="bi bi-pen"></i> {edit ? "Edit" : "Change"}
-                      </button>
-                      <button
-                        className={`btn ${styles.floatingCardBtn} border border-0 rounded-pill p-2 ${styles.removeImageUrl}`}
-                        onClick={removeProfileImage}
-                      >
-                        <i className="bi bi-trash"></i> Remove
-                      </button>
-                    </div>
-                  </section>
-                </div>
-              )}
-            </div>
-            <div className="row mt-5">
-              <Link
-                to="/yourOrders"
-                className="col-md-6 col-xl-4 mb-4 text-decoration-none"
-              >
-                <div
-                  className={`card align-items-center gap-2 ${styles.cardInUserProfilePage} p-2`}
-                >
-                  <img
-                    src={images.DeliveryBox}
-                    alt="deliveryBox"
-                    className=""
-                    style={{ width: "150px" }}
-                  />
-                  <div className="card-body">
-                    <h6>Your Orders</h6>
-                    <p>Track, Return and buy things again</p>
+                      <i className="bi bi-pen"></i> {edit ? "Edit" : "Change"}
+                    </button>
+                    <button
+                      className={`btn ${styles.floatingCardBtn} border border-0 rounded-pill p-2 ${styles.removeImageUrl}`}
+                      onClick={removeProfileImage}
+                    >
+                      <i className="bi bi-trash"></i> Remove
+                    </button>
                   </div>
-                </div>
-              </Link>
-              <Link
-                to="/userAddress/user"
-                className="col-md-6 col-xl-4 mb-4 text-decoration-none"
+                </section>
+              </div>
+            )}
+          </div>
+          <div className="row mt-5">
+            <Link
+              to="/yourOrders"
+              className="col-md-6 col-xl-4 mb-4 text-decoration-none"
+            >
+              <div
+                className={`card align-items-center gap-2 ${styles.cardInUserProfilePage} p-2`}
               >
-                <div
-                  className={`card align-items-center gap-3 ${styles.cardInUserProfilePage} p-2`}
-                >
-                  <img
-                    src={images.AddressIcon}
-                    alt="addressIcon"
-                    className=""
-                    style={{ width: "100px" }}
-                  />
-                  <div className="card-body">
-                    <h6>Your Addresses</h6>
-                    <p>Edit address for your orders and gifts</p>
-                  </div>
+                <img
+                  src={images.DeliveryBox}
+                  alt="deliveryBox"
+                  className=""
+                  style={{ width: "150px" }}
+                />
+                <div className="card-body">
+                  <h6>Your Orders</h6>
+                  <p>Track, Return and buy things again</p>
                 </div>
-              </Link>
-              <Link
-                to="/contactUs"
-                className="col-md-6 col-xl-4 mb-4 text-decoration-none"
+              </div>
+            </Link>
+            <Link
+              to="/userAddress/user"
+              className="col-md-6 col-xl-4 mb-4 text-decoration-none"
+            >
+              <div
+                className={`card align-items-center gap-3 ${styles.cardInUserProfilePage} p-2`}
               >
-                <div
-                  className={`card align-items-center gap-3 ${styles.cardInUserProfilePage} p-2`}
-                >
-                  <img
-                    src={images.Support}
-                    alt="support"
-                    className="ms-3"
-                    style={{ width: "80px" }}
-                  />
-                  <div className="card-body">
-                    <h6>Contact Us</h6>
-                    <p>Contact our customer service via phone or chart</p>
-                  </div>
+                <img
+                  src={images.AddressIcon}
+                  alt="addressIcon"
+                  className=""
+                  style={{ width: "100px" }}
+                />
+                <div className="card-body">
+                  <h6>Your Addresses</h6>
+                  <p>Edit address for your orders and gifts</p>
                 </div>
-              </Link>
-            </div>
-          </main>
-          <Footer />
-        </>
+              </div>
+            </Link>
+            <Link
+              to="/contactUs"
+              className="col-md-6 col-xl-4 mb-4 text-decoration-none"
+            >
+              <div
+                className={`card align-items-center gap-3 ${styles.cardInUserProfilePage} p-2`}
+              >
+                <img
+                  src={images.Support}
+                  alt="support"
+                  className="ms-3"
+                  style={{ width: "80px" }}
+                />
+                <div className="card-body">
+                  <h6>Contact Us</h6>
+                  <p>Contact our customer service via phone or chart</p>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </main>
       )}
+
+      <Footer />
     </>
   )
 }

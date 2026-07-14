@@ -21,7 +21,7 @@ export default function searchInPage({
 
   useEffect(() => {
     async function fetchData() {
-      const result = await fetchDistinctCommonCategories()
+      const result = await fetchDistinctCommonCategories({})
       setCategories(result)
     }
     fetchData()
@@ -43,7 +43,7 @@ export default function searchInPage({
 
   async function handleClick() {
     if (typeof search === "object") {
-      const distinctCommonCategories = await fetchDistinctCommonCategories()
+      const distinctCommonCategories = await fetchDistinctCommonCategories({})
       const searchProducts = input
         ? Search(distinctCommonCategories, input)
         : []

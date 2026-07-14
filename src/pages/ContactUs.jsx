@@ -2,23 +2,21 @@ import "@fortawesome/fontawesome-free/css/all.min.css"
 import styles from "../style_modules/pages_modules/ContactUs.module.css"
 import Header from "../components/Header"
 import Footer from "../components/Footer"
-import GetUserId from "../services/GetClothsData"
+import GetUser from "../services/GetClothsData"
 import { useEffect, useState } from "react"
-import { fetchUserById } from "../services/FetchRequests"
 import Error from "../components/Error"
 
 export default function ContactUs() {
   const [loading, setLoading] = useState(false)
   const [isError, setIsError] = useState("")
-  const userId = GetUserId()
-  const [user, setUser] = useState(null)
+
+  const { user, setUser } = GetUser()
+  const userId = user._id
 
   useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true)
-
-        const user = await fetchUserById(userId, setUser, setIsError)
       } catch (error) {
         if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
           console.error(error)
@@ -33,6 +31,10 @@ export default function ContactUs() {
 
   if (isError) {
     return <Error />
+  }
+
+  if (!Object.keys(user).length) {
+    return
   }
 
   return (
@@ -69,14 +71,14 @@ export default function ContactUs() {
                       <i className="fa-solid fa-phone"></i>
                     </span>
                     <span>Phone No.</span>
-                    <span>+91 1234567890</span>
+                    <span>+91 9883620996</span>
                   </div>
                   <div>
                     <span>
                       <i className="fa-sharp fa-solid fa-envelope"></i>
                     </span>
                     <span>Email</span>
-                    <span>bharatvastra@gmail.com</span>
+                    <span>akashdas02052@gmail.com</span>
                   </div>
                   <div>
                     <span>
@@ -100,7 +102,7 @@ export default function ContactUs() {
                   <div>
                     <input
                       type="text"
-                      placeholder="Name"
+                      placeholder="Enter Your Name"
                       className={`${styles.form_input}`}
                       name="Username"
                       autoComplete="off"
