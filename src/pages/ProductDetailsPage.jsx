@@ -68,7 +68,6 @@ export default function ProductDetailsPage() {
   const [secureTransactionPopover, setSecureTransactionPopover] =
     useState(false)
   const [knowMore, setKnowMore] = useState(false)
-  const [createOrderInDatabaseRaw, setCreateOrderInDatabase] = useState(null)
   const [product, setProduct] = useState(null)
   const [similarProducts, setSimilarProducts] = useState([])
 
@@ -76,6 +75,8 @@ export default function ProductDetailsPage() {
   const id = Number(paramId)
   const { user, setUser } = GetUser()
   const userId = user._id
+
+  const createOrderRef = useRef(null)
 
   const camelCaseToTitle = (camelCase) => {
     const wordsArray = []
@@ -136,8 +137,8 @@ export default function ProductDetailsPage() {
   }
 
   const uniqueCreateOrderInDatabase = useMemo(() => {
-    if (!createOrderInDatabaseRaw) return null
-    return createOrderInDatabaseRaw.reduce((acc, item) => {
+    if (!createOrderRef.current) return null
+    return createOrderRef.current.reduce((acc, item) => {
       if (!acc.length) {
         acc.push(item)
       } else {
@@ -148,7 +149,7 @@ export default function ProductDetailsPage() {
       }
       return acc
     }, [])
-  }, [createOrderInDatabaseRaw])
+  }, [createOrderRef.current])
 
   const createOrderInDatabase = { item: uniqueCreateOrderInDatabase }
 
@@ -185,12 +186,12 @@ export default function ProductDetailsPage() {
     async function fetchCreateOrderData() {
       try {
         if (userId) {
-          await fetchCreateOrderByUserId({
+          const result = await fetchCreateOrderByUserId({
             userId,
-            setFunction: setCreateOrderInDatabase,
             setIsError,
             navigate,
           })
+          createOrderRef.current = result
         }
       } catch (error) {
         if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
@@ -297,18 +298,14 @@ export default function ProductDetailsPage() {
           }
         }
 
-        let createOrderArr = await fetchCreateOrderByUserId({
-          userId,
-          setIsError,
-          navigate,
-        })
-
         if (size) {
-          if (createOrderArr && createOrderArr[0]) {
-            createOrderArr[0].products.forEach((item) => (item.size = size))
+          if (createOrderRef.current && createOrderRef.current[0]) {
+            createOrderRef.current[0].products.forEach(
+              (item) => (item.size = size),
+            )
             product.size = size
             const createOrderObj = {
-              products: createOrderArr[0].products,
+              products: createOrderRef.current[0].products,
               userId,
             }
             const response = await fetchCreateOrderByUserIdAndUpdate({
@@ -317,14 +314,15 @@ export default function ProductDetailsPage() {
               setIsError,
               navigate,
             })
-            createOrderArr = [response]
+
+            createOrderRef.current = [response]
           }
         }
 
         product.freeDelivery = !!isFreeDeliveryAvailable
 
-        if (createOrderArr && createOrderArr[0]) {
-          const filteredItem = createOrderArr[0].products.filter(
+        if (createOrderRef.current && createOrderRef.current[0]) {
+          const filteredItem = createOrderRef.current[0].products.filter(
             (item) => item.id !== product.id,
           )
 
@@ -341,12 +339,13 @@ export default function ProductDetailsPage() {
 
           filteredItem.push(product)
           const createOrderObj = { products: filteredItem, userId }
-          await fetchCreateOrderByUserIdAndUpdate({
+          const result = await fetchCreateOrderByUserIdAndUpdate({
             userId: userId,
             createOrder: createOrderObj,
             setIsError,
             navigate,
           })
+          createOrderRef.current = [result]
         }
 
         setUpdated(false)
@@ -406,6 +405,10 @@ export default function ProductDetailsPage() {
     }
   }, [product?.freeDelivery, id])
 
+  useEffect(() => {
+    setFreeDelivery(false)
+  }, [id])
+
   async function updateCreateOrder(targetId, data) {
     try {
       const response = await fetchCreateOrderByUserId({
@@ -414,18 +417,20 @@ export default function ProductDetailsPage() {
         navigate,
       })
       if (response.length) {
-        await fetchCreateOrderByUserIdAndUpdate({
+        const result = await fetchCreateOrderByUserIdAndUpdate({
           userId: targetId,
           createOrder: data,
           setIsError,
           navigate,
         })
+        createOrderRef.current = [result]
       } else {
-        await saveCreateOrder({
+        const result = await saveCreateOrder({
           createOrder: data,
           setIsError,
           navigate,
         })
+        createOrderRef.current = [result]
       }
       setUpdated(true)
     } catch (error) {
@@ -578,18 +583,13 @@ export default function ProductDetailsPage() {
   async function addToCreateOrderCheckboxHandler(e, productId) {
     try {
       const checked = e.target.checked
-      const createOrderArr = await fetchCreateOrderByUserId({
-        userId,
-        setIsError,
-        navigate,
-      })
       const targetProduct = await fetchClothById({
         clothId: productId,
         setIsError,
       })
 
-      if (!createOrderArr || !createOrderArr[0]) return
-      const isIncluded = createOrderArr[0].products.some(
+      if (!createOrderRef.current || !createOrderRef.current[0]) return
+      const isIncluded = createOrderRef.current[0].products.some(
         (item) => item.id === targetProduct.id,
       )
 
@@ -597,30 +597,32 @@ export default function ProductDetailsPage() {
         if (!isIncluded) {
           if (size) targetProduct.size = size
           targetProduct.quantity = 1
-          createOrderArr[0].products.push(targetProduct)
+          createOrderRef.current[0].products.push(targetProduct)
           const createOrderObj = {
-            products: createOrderArr[0].products,
+            products: createOrderRef.current[0].products,
             userId,
           }
-          await fetchCreateOrderByUserIdAndUpdate({
+          const result = await fetchCreateOrderByUserIdAndUpdate({
             userId,
             createOrder: createOrderObj,
             setIsError,
             navigate,
           })
+          createOrderRef.current = [result]
         }
       } else {
         if (isIncluded) {
-          const updatedItem = createOrderArr[0].products.filter(
+          const updatedItem = createOrderRef.current[0].products.filter(
             (item) => item.id !== targetProduct.id,
           )
           const createOrderObj = { products: updatedItem, userId }
-          await fetchCreateOrderByUserIdAndUpdate({
+          const result = await fetchCreateOrderByUserIdAndUpdate({
             userId,
             createOrder: createOrderObj,
             setIsError,
             navigate,
           })
+          createOrderRef.current = [result]
         }
       }
       setUpdated(true)
