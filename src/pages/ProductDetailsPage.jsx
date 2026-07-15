@@ -136,23 +136,6 @@ export default function ProductDetailsPage() {
     })
   }
 
-  const uniqueCreateOrderInDatabase = useMemo(() => {
-    if (!createOrderRef.current) return null
-    return createOrderRef.current.reduce((acc, item) => {
-      if (!acc.length) {
-        acc.push(item)
-      } else {
-        const searchInAcc = acc.find((obj) => obj.id === item.id)
-        if (!searchInAcc) {
-          acc.push(item)
-        }
-      }
-      return acc
-    }, [])
-  }, [createOrderRef.current])
-
-  const createOrderInDatabase = { item: uniqueCreateOrderInDatabase }
-
   if (product && Object.keys(user).length) {
     const isClothPresentInCart =
       user && user?.addToCartItems.filter((item) => item.id === product.id)

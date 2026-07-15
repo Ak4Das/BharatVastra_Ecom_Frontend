@@ -14,6 +14,7 @@ dist-ssr
 note.txt
 useFetch.js
 .env
+notes
 
 # Editor directories and files
 .vscode/*
