@@ -74,7 +74,9 @@ export default function ProductDetailsPage() {
   const { id: paramId } = useParams()
   const id = Number(paramId)
   const { user, setUser } = GetUser()
+  console.log(user)
   const userId = user._id
+  const userExists = user && Object.keys(user).length > 0
 
   const createOrderRef = useRef(null)
 
@@ -95,7 +97,7 @@ export default function ProductDetailsPage() {
     })
     const lastWord = arrayOfLetters.slice(firstIndex).join("")
     wordsArray.push(lastWord)
-    return wordsArray.join(" ")
+    return wordsArray.join(" ").trim()
   }
 
   const setDeliveryDate = () => {
@@ -105,29 +107,26 @@ export default function ProductDetailsPage() {
   }
 
   const getFinalClothsData = (clothsData) => {
-    if (!Object.keys(user).length) return clothsData
+    if (!userExists) return clothsData
     return clothsData.map((cloth) => {
       const clothCopy = { ...cloth }
-      const isClothPresentInCart = user.addToCartItems.filter(
+
+      const cartItem = user.addToCartItems?.find(
         (item) => item.id === clothCopy.id,
       )
 
-      if (isClothPresentInCart && isClothPresentInCart.length) {
+      if (cartItem) {
         clothCopy.addToCart = true
-        clothCopy.quantity = isClothPresentInCart[0].quantity
-          ? isClothPresentInCart[0].quantity
-          : 1
-        clothCopy.size = isClothPresentInCart[0].size
-          ? isClothPresentInCart[0].size
-          : ""
+        clothCopy.quantity = cartItem.quantity || 1
+        clothCopy.size = cartItem.size || ""
       } else {
         delete clothCopy.addToCart
       }
 
-      const isClothPresentInWishlist = user.addToWishlistItems.filter(
+      const wishlistItem = user.addToWishlistItems.find(
         (item) => item.id === clothCopy.id,
       )
-      if (isClothPresentInWishlist && isClothPresentInWishlist.length) {
+      if (wishlistItem) {
         clothCopy.addToWishList = true
       } else {
         delete clothCopy.addToWishList
@@ -136,27 +135,21 @@ export default function ProductDetailsPage() {
     })
   }
 
-  if (product && Object.keys(user).length) {
-    const isClothPresentInCart =
-      user && user?.addToCartItems.filter((item) => item.id === product.id)
-    if (isClothPresentInCart && isClothPresentInCart.length) {
+  if (product && userExists) {
+    const cartItem = user.addToCartItems?.find((item) => item.id === product.id)
+    if (cartItem) {
       product.addToCart = true
-      product.quantity = isClothPresentInCart[0].quantity
-        ? isClothPresentInCart[0].quantity
-        : 1
-      product.size = isClothPresentInCart[0].size
-        ? isClothPresentInCart[0].size
-        : ""
-    }
-
-    if (isClothPresentInCart && !isClothPresentInCart.length) {
+      product.quantity = cartItem.quantity || 1
+      product.size = cartItem.size || ""
+    } else {
       product.quantity = quantity
       product.size = size
     }
 
-    const isClothPresentInWishlist =
-      user && user?.addToWishlistItems.filter((item) => item.id === product.id)
-    if (isClothPresentInWishlist && isClothPresentInWishlist.length) {
+    const wishItem = user.addToWishlistItems?.find(
+      (item) => item.id === product.id,
+    )
+    if (wishItem) {
       product.addToWishList = true
     }
   }
@@ -193,7 +186,7 @@ export default function ProductDetailsPage() {
           clothId: id,
           setIsError,
         })
-        if (Object.keys(user).length) {
+        if (userExists) {
           const finalProduct = getFinalClothsData([result])
           setProduct(finalProduct[0])
         } else {
@@ -210,7 +203,7 @@ export default function ProductDetailsPage() {
               }),
             ),
           )
-          if (Object.keys(user).length) {
+          if (userExists) {
             const finalSimilarProducts = getFinalClothsData(allSimilarProducts)
             setSimilarProducts(finalSimilarProducts)
           } else {
@@ -260,19 +253,22 @@ export default function ProductDetailsPage() {
   useEffect(() => {
     async function syncChanges() {
       try {
-        if (!isUpdated || !product || !Object.keys(user).length) return
+        if (!isUpdated || !product || !userExists) return
+        const USER = { ...user }
 
-        const isClothPresentInCart =
-          user && user.addToCartItems.filter((item) => item.id === product.id)
+        const cartItem = USER.addToCartItems?.find(
+          (item) => item.id === product.id,
+        )
 
-        if (isClothPresentInCart && isClothPresentInCart.length) {
+        if (cartItem) {
           if (quantity > 1) {
-            isClothPresentInCart[0].quantity = quantity
+            cartItem.quantity = quantity
             await updateCartItemsInUser({
-              items: user.addToCartItems,
+              items: USER.addToCartItems,
               setIsError,
               navigate,
             })
+            setUser(USER)
             product.quantity = quantity
           }
         } else {
@@ -310,14 +306,15 @@ export default function ProductDetailsPage() {
           )
 
           filteredItem.forEach((prod) => {
-            const isAddedToCart =
-              user && user.addToCartItems.filter((item) => item.id === prod.id)
-            if (isAddedToCart.length) prod.addToCart = true
+            const cartItem = user.addToCartItems?.find(
+              (item) => item.id === prod.id,
+            )
+            if (cartItem) prod.addToCart = true
 
-            const isAddedToWishlist =
-              user &&
-              user.addToWishlistItems.filter((item) => item.id === prod.id)
-            if (isAddedToWishlist.length) prod.addToWishList = true
+            const wishItem = user.addToWishlistItems?.find(
+              (item) => item.id === prod.id,
+            )
+            if (wishItem) prod.addToWishList = true
           })
 
           filteredItem.push(product)
@@ -423,19 +420,20 @@ export default function ProductDetailsPage() {
 
   async function increaseCount() {
     try {
-      if (!qtyInputRef.current || !Object.keys(user).length) return
+      if (!qtyInputRef.current || !userExists) return
       let targetValue = Number(qtyInputRef.current.value) + 1
       qtyInputRef.current.value = targetValue
+      const USER = { ...user }
 
-      const clothItem =
-        user && user.addToCartItems.find((item) => item.id === id)
+      const clothItem = USER.addToCartItems?.find((item) => item.id === id)
       if (clothItem) {
         clothItem.quantity = targetValue
         await updateCartItemsInUser({
-          items: user.addToCartItems,
+          items: USER.addToCartItems,
           setIsError,
           navigate,
         })
+        setUser(USER)
       }
 
       if (product) product.quantity = targetValue
@@ -451,22 +449,23 @@ export default function ProductDetailsPage() {
 
   async function decreaseCount() {
     try {
-      if (!qtyInputRef.current) return
+      if (!qtyInputRef.current || !userExists) return
       let targetValue = Number(qtyInputRef.current.value)
 
-      if (targetValue > 1 && Object.keys(user).length) {
+      if (targetValue > 1 && userExists) {
         targetValue--
         qtyInputRef.current.value = targetValue
+        const USER = { ...user }
 
-        const clothItem =
-          user && user.addToCartItems.find((item) => item.id === id)
+        const clothItem = USER.addToCartItems?.find((item) => item.id === id)
         if (clothItem) {
           clothItem.quantity = targetValue
           await updateCartItemsInUser({
-            items: user.addToCartItems,
+            items: USER.addToCartItems,
             setIsError,
             navigate,
           })
+          setUser(USER)
         }
 
         if (product) product.quantity = targetValue
@@ -654,7 +653,7 @@ export default function ProductDetailsPage() {
   }
 
   const address =
-    Object.keys(user).length &&
+    userExists &&
     user?.address.length !== 0 &&
     user?.address.find((addr) => addr.selected)
 
@@ -676,7 +675,7 @@ export default function ProductDetailsPage() {
     return <Error />
   }
 
-  if (!Object.keys(user).length) {
+  if (!userExists) {
     return
   }
 
