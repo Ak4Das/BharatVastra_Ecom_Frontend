@@ -68,7 +68,7 @@ export default function ProductDetailsPage() {
   const [secureTransactionPopover, setSecureTransactionPopover] =
     useState(false)
   const [knowMore, setKnowMore] = useState(false)
-  const [product, setProduct] = useState(null)
+  const [rawProduct, setRawProduct] = useState(null)
   const [similarProducts, setSimilarProducts] = useState([])
 
   const { id: paramId } = useParams()
@@ -135,24 +135,32 @@ export default function ProductDetailsPage() {
     })
   }
 
-  if (product && userExists) {
-    const cartItem = user.addToCartItems?.find((item) => item.id === product.id)
-    if (cartItem) {
-      product.addToCart = true
-      product.quantity = cartItem.quantity || 1
-      product.size = cartItem.size || ""
-    } else {
-      product.quantity = quantity
-      product.size = size
-    }
+  const product = useMemo(() => {
+    if (!rawProduct) return null
+    const computedProduct = { ...rawProduct }
 
-    const wishItem = user.addToWishlistItems?.find(
-      (item) => item.id === product.id,
-    )
-    if (wishItem) {
-      product.addToWishList = true
+    if (userExists) {
+      const cartItem = user.addToCartItems?.find(
+        (item) => item.id === computedProduct.id,
+      )
+      if (cartItem) {
+        computedProduct.addToCart = true
+        computedProduct.quantity = cartItem.quantity || 1
+        computedProduct.size = cartItem.size || ""
+      } else {
+        computedProduct.quantity = quantity
+        computedProduct.size = size
+      }
+
+      const wishItem = user.addToWishlistItems?.find(
+        (item) => item.id === computedProduct.id,
+      )
+      if (wishItem) {
+        computedProduct.addToWishList = true
+      }
     }
-  }
+    return computedProduct
+  }, [rawProduct, user, quantity, size, userExists])
 
   useEffect(() => {
     setLoading(true)
@@ -188,9 +196,9 @@ export default function ProductDetailsPage() {
         })
         if (userExists) {
           const finalProduct = getFinalClothsData([result])
-          setProduct(finalProduct[0])
+          setRawProduct(finalProduct[0])
         } else {
-          setProduct(result)
+          setRawProduct(result)
         }
         if (result && result.similarProducts) {
           const similarProductIds = result.similarProducts.map((p) => p.id)
@@ -218,7 +226,7 @@ export default function ProductDetailsPage() {
       }
     }
     fetchProductData()
-  }, [id, user])
+  }, [id])
 
   useEffect(() => {
     if (cbBought2Ref.current) {
