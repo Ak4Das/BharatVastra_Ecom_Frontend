@@ -485,7 +485,7 @@ export default function ProductDetailsPage() {
       e.preventDefault()
       e.stopPropagation()
       const currentTargetId = Number(e.target.value)
-      const USER = {...user}
+      const USER = { ...user }
 
       const cartItem = USER.addToCartItems?.find(
         (item) => item.id === currentTargetId,
@@ -530,7 +530,7 @@ export default function ProductDetailsPage() {
       e.preventDefault()
       e.stopPropagation()
       const currentTargetId = Number(e.target.value)
-      const USER = {...user}
+      const USER = { ...user }
 
       const wishItem = USER.addToWishlistItems.find(
         (item) => item.id === currentTargetId,
@@ -612,6 +612,56 @@ export default function ProductDetailsPage() {
         }
       }
       setUpdated(true)
+    } catch (error) {
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
+      setIsError(error.message)
+    }
+  }
+
+  async function handleSize(e, size) {
+    try {
+      if (userId) {
+        setSize(size)
+
+        // Update user in Database
+        const USER = { ...user }
+        const isClothAddedToCart = USER.addToCartItems?.find(
+          (item) => item.id === id,
+        )
+        if (isClothAddedToCart) {
+          isClothAddedToCart.size = size
+          await updateCartItemsInUser({
+            items: USER.addToCartItems,
+            setIsError,
+            navigate,
+          })
+          setUser(USER)
+        }
+
+        setUpdated(true)
+
+        // For interactivity
+        const btn = e.target
+        btn.innerHTML = "✓"
+        setTimeout(() => {
+          btn.innerHTML = size
+          btn.style.backgroundColor = "green"
+          btn.style.color = "white"
+          const parentElement = btn.parentElement
+          const siblings = parentElement.children
+          const arrayOfSiblings = [...siblings]
+          arrayOfSiblings.forEach((sibling) => {
+            if (sibling !== btn) {
+              sibling.style.backgroundColor = ""
+              sibling.style.color = ""
+            }
+          })
+        }, 500)
+      } else {
+        toast.info("Please login to your account")
+      }
     } catch (error) {
       if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
         console.error(error)
@@ -886,16 +936,18 @@ export default function ProductDetailsPage() {
                       onChange={async (e) => {
                         try {
                           // Update user in Database
-                          const clothItem = user.addToCartItems.find(
+                          const USER = { ...user }
+                          const clothItem = USER.addToCartItems.find(
                             (item) => item.id === id,
                           )
                           if (clothItem) {
                             clothItem.quantity = Number(e.target.value)
                             await updateCartItemsInUser({
-                              items: user.addToCartItems,
+                              items: USER.addToCartItems,
                               setIsError,
                               navigate,
                             })
+                            setUser(USER)
                           }
 
                           setQuantity(Number(e.target.value))
@@ -930,266 +982,31 @@ export default function ProductDetailsPage() {
                   <div className={`${styles.sizeBtnContainer}`}>
                     <button
                       className="border border-1 me-2 mb-2"
-                      onClick={async (e) => {
-                        try {
-                          if (userId) {
-                            setSize("S")
-
-                            // Update user in Database
-                            const isClothAddedToCart = user.addToCartItems.find(
-                              (item) => item.id === id,
-                            )
-                            if (isClothAddedToCart) {
-                              isClothAddedToCart.size = "S"
-                              await updateCartItemsInUser({
-                                items: user.addToCartItems,
-                                setIsError,
-                                navigate,
-                              })
-                            }
-
-                            // To update clothsData, createOrder and the variables present in this page
-                            setUpdated(true)
-
-                            // For interactivity
-                            const btn = e.target
-                            btn.innerHTML = "✓"
-                            setTimeout(() => {
-                              btn.innerHTML = "S"
-                              btn.style.backgroundColor = "green"
-                              btn.style.color = "white"
-                              const parentElement = btn.parentElement
-                              const siblings = parentElement.children
-                              const arrayOfSiblings = [...siblings]
-                              arrayOfSiblings.forEach((sibling) => {
-                                if (sibling !== btn) {
-                                  sibling.style.backgroundColor = ""
-                                  sibling.style.color = ""
-                                }
-                              })
-                            }, 500)
-                          } else {
-                            toast.info("Please login to your account")
-                          }
-                        } catch (error) {
-                          if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
-                            console.error(error)
-                          }
-                          setIsError(error.message)
-                        }
-                      }}
+                      onClick={(e) => handleSize(e, "S")}
                     >
                       S
                     </button>
                     <button
                       className="border border-1 me-2 mb-2"
-                      onClick={async (e) => {
-                        try {
-                          if (userId) {
-                            setSize("M")
-
-                            // Update user in Database
-                            const isClothAddedToCart =
-                              user &&
-                              user.addToCartItems.find((item) => item.id === id)
-                            if (isClothAddedToCart) {
-                              isClothAddedToCart.size = "M"
-                              await updateCartItemsInUser({
-                                items: user.addToCartItems,
-                                setIsError,
-                                navigate,
-                              })
-                            }
-
-                            // To update clothsData, createOrder and the variables present in this page
-                            setUpdated(true)
-
-                            // For interactivity
-                            const btn = e.target
-                            btn.innerHTML = "✓"
-                            setTimeout(() => {
-                              btn.innerHTML = "M"
-                              btn.style.backgroundColor = "green"
-                              btn.style.color = "white"
-                              const parentElement = btn.parentElement
-                              const siblings = parentElement.children
-                              const arrayOfSiblings = [...siblings]
-                              arrayOfSiblings.forEach((sibling) => {
-                                if (sibling !== btn) {
-                                  sibling.style.backgroundColor = ""
-                                  sibling.style.color = ""
-                                }
-                              })
-                            }, 500)
-                          } else {
-                            toast.info("Please login to your account")
-                          }
-                        } catch (error) {
-                          if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
-                            console.error(error)
-                          }
-                          setIsError(error.message)
-                        }
-                      }}
+                      onClick={(e) => handleSize(e, "M")}
                     >
                       M
                     </button>
                     <button
                       className="border border-1 me-2 mb-2"
-                      onClick={async (e) => {
-                        try {
-                          if (userId) {
-                            setSize("L")
-
-                            // Update user in Database
-                            const isClothAddedToCart = user.addToCartItems.find(
-                              (item) => item.id === id,
-                            )
-                            if (isClothAddedToCart) {
-                              isClothAddedToCart.size = "L"
-                              await updateCartItemsInUser({
-                                items: user.addToCartItems,
-                                setIsError,
-                                navigate,
-                              })
-                            }
-
-                            // To update clothsData, createOrder and the variables present in this page
-                            setUpdated(true)
-
-                            // For interactivity
-                            const btn = e.target
-                            btn.innerHTML = "✓"
-                            setTimeout(() => {
-                              btn.innerHTML = "L"
-                              btn.style.backgroundColor = "green"
-                              btn.style.color = "white"
-                              const parentElement = btn.parentElement
-                              const siblings = parentElement.children
-                              const arrayOfSiblings = [...siblings]
-                              arrayOfSiblings.forEach((sibling) => {
-                                if (sibling !== btn) {
-                                  sibling.style.backgroundColor = ""
-                                  sibling.style.color = ""
-                                }
-                              })
-                            }, 500)
-                          } else {
-                            toast.info("Please login to your account")
-                          }
-                        } catch (error) {
-                          if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
-                            console.error(error)
-                          }
-                          setIsError(error.message)
-                        }
-                      }}
+                      onClick={(e) => handleSize(e, "L")}
                     >
                       L
                     </button>
                     <button
                       className="border border-1 me-2 mb-2"
-                      onClick={async (e) => {
-                        try {
-                          if (userId) {
-                            setSize("XL")
-
-                            // Update user in Database
-                            const isClothAddedToCart = user.addToCartItems.find(
-                              (item) => item.id === id,
-                            )
-                            if (isClothAddedToCart) {
-                              isClothAddedToCart.size = "XL"
-                              await updateCartItemsInUser({
-                                items: user.addToCartItems,
-                                setIsError,
-                                navigate,
-                              })
-                            }
-
-                            // To update clothsData, createOrder and the variables present in this page
-                            setUpdated(true)
-
-                            // For interactivity
-                            const btn = e.target
-                            btn.innerHTML = "✓"
-                            setTimeout(() => {
-                              btn.innerHTML = "XL"
-                              btn.style.backgroundColor = "green"
-                              btn.style.color = "white"
-                              const parentElement = btn.parentElement
-                              const siblings = parentElement.children
-                              const arrayOfSiblings = [...siblings]
-                              arrayOfSiblings.forEach((sibling) => {
-                                if (sibling !== btn) {
-                                  sibling.style.backgroundColor = ""
-                                  sibling.style.color = ""
-                                }
-                              })
-                            }, 500)
-                          } else {
-                            toast.info("Please login to your account")
-                          }
-                        } catch (error) {
-                          if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
-                            console.error(error)
-                          }
-                          setIsError(error.message)
-                        }
-                      }}
+                      onClick={(e) => handleSize(e, "XL")}
                     >
                       XL
                     </button>
                     <button
                       className="border border-1 mb-2"
-                      onClick={async (e) => {
-                        try {
-                          if (userId) {
-                            setSize("XXL")
-
-                            // Update user in Database
-                            const isClothAddedToCart = user.addToCartItems.find(
-                              (item) => item.id === id,
-                            )
-                            if (isClothAddedToCart) {
-                              isClothAddedToCart.size = "XXL"
-                              await updateCartItemsInUser({
-                                items: user.addToCartItems,
-                                setIsError,
-                                navigate,
-                              })
-                            }
-
-                            // To update clothsData, createOrder and the variables present in this page
-                            setUpdated(true)
-
-                            // For interactivity
-                            const btn = e.target
-                            btn.innerHTML = "✓"
-                            setTimeout(() => {
-                              btn.innerHTML = "XXL"
-                              btn.style.backgroundColor = "green"
-                              btn.style.color = "white"
-                              const parentElement = btn.parentElement
-                              const siblings = parentElement.children
-                              const arrayOfSiblings = [...siblings]
-                              arrayOfSiblings.forEach((sibling) => {
-                                if (sibling !== btn) {
-                                  sibling.style.backgroundColor = ""
-                                  sibling.style.color = ""
-                                }
-                              })
-                            }, 500)
-                          } else {
-                            toast.info("Please login to your account")
-                          }
-                        } catch (error) {
-                          if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
-                            console.error(error)
-                          }
-                          setIsError(error.message)
-                        }
-                      }}
+                      onClick={(e) => handleSize(e, "XXL")}
                     >
                       XXL
                     </button>
