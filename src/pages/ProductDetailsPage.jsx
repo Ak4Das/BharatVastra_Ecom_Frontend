@@ -78,7 +78,7 @@ export default function ProductDetailsPage() {
   const userId = user._id
   const userExists = user && Object.keys(user).length > 0
 
-  const createOrderRef = useRef(null)
+  const [createOrderData, setCreateOrderData] = useState(null)
 
   const camelCaseToTitle = (camelCase) => {
     const wordsArray = []
@@ -175,7 +175,7 @@ export default function ProductDetailsPage() {
             setIsError,
             navigate,
           })
-          createOrderRef.current = result
+          setCreateOrderData(result)
         }
       } catch (error) {
         if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
@@ -226,7 +226,7 @@ export default function ProductDetailsPage() {
       }
     }
     fetchProductData()
-  }, [id])
+  }, [id, user])
 
   useEffect(() => {
     if (cbBought2Ref.current) {
@@ -286,13 +286,11 @@ export default function ProductDetailsPage() {
         }
 
         if (size) {
-          if (createOrderRef.current && createOrderRef.current[0]) {
-            createOrderRef.current[0].products.forEach(
-              (item) => (item.size = size),
-            )
+          if (createOrderData && createOrderData[0]) {
+            createOrderData[0].products.forEach((item) => (item.size = size))
             product.size = size
             const createOrderObj = {
-              products: createOrderRef.current[0].products,
+              products: createOrderData[0].products,
               userId,
             }
             const response = await fetchCreateOrderByUserIdAndUpdate({
@@ -302,14 +300,14 @@ export default function ProductDetailsPage() {
               navigate,
             })
 
-            createOrderRef.current = [response]
+            setCreateOrderData([response])
           }
         }
 
         product.freeDelivery = !!isFreeDeliveryAvailable
 
-        if (createOrderRef.current && createOrderRef.current[0]) {
-          const filteredItem = createOrderRef.current[0].products.filter(
+        if (createOrderData && createOrderData[0]) {
+          const filteredItem = createOrderData[0].products.filter(
             (item) => item.id !== product.id,
           )
 
@@ -333,7 +331,8 @@ export default function ProductDetailsPage() {
             setIsError,
             navigate,
           })
-          createOrderRef.current = [result]
+
+          setCreateOrderData([result])
         }
 
         setUpdated(false)
@@ -411,14 +410,16 @@ export default function ProductDetailsPage() {
           setIsError,
           navigate,
         })
-        createOrderRef.current = [result]
+
+        setCreateOrderData([result])
       } else {
         const result = await saveCreateOrder({
           createOrder: data,
           setIsError,
           navigate,
         })
-        createOrderRef.current = [result]
+
+        setCreateOrderData([result])
       }
       setUpdated(true)
     } catch (error) {
@@ -582,8 +583,8 @@ export default function ProductDetailsPage() {
         setIsError,
       })
 
-      if (!createOrderRef.current || !createOrderRef.current[0]) return
-      const isIncluded = createOrderRef.current[0].products.some(
+      if (!createOrderData || !createOrderData[0]) return
+      const isIncluded = createOrderData[0].products.some(
         (item) => item.id === targetProduct.id,
       )
 
@@ -591,9 +592,9 @@ export default function ProductDetailsPage() {
         if (!isIncluded) {
           if (size) targetProduct.size = size
           targetProduct.quantity = 1
-          createOrderRef.current[0].products.push(targetProduct)
+          createOrderData[0].products.push(targetProduct)
           const createOrderObj = {
-            products: createOrderRef.current[0].products,
+            products: createOrderData[0].products,
             userId,
           }
           const result = await fetchCreateOrderByUserIdAndUpdate({
@@ -602,11 +603,12 @@ export default function ProductDetailsPage() {
             setIsError,
             navigate,
           })
-          createOrderRef.current = [result]
+
+          setCreateOrderData([result])
         }
       } else {
         if (isIncluded) {
-          const updatedItem = createOrderRef.current[0].products.filter(
+          const updatedItem = createOrderData[0].products.filter(
             (item) => item.id !== targetProduct.id,
           )
           const createOrderObj = { products: updatedItem, userId }
@@ -616,7 +618,8 @@ export default function ProductDetailsPage() {
             setIsError,
             navigate,
           })
-          createOrderRef.current = [result]
+
+          setCreateOrderData([result])
         }
       }
       setUpdated(true)
