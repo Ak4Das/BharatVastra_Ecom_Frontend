@@ -485,21 +485,23 @@ export default function ProductDetailsPage() {
       e.preventDefault()
       e.stopPropagation()
       const currentTargetId = Number(e.target.value)
+      const USER = {...user}
 
-      const isAddedToCart = user.addToCartItems.filter(
+      const cartItem = USER.addToCartItems?.find(
         (item) => item.id === currentTargetId,
       )
-      if (!isAddedToCart.length) {
-        user.addToCartItems.push({
+      if (!cartItem) {
+        USER.addToCartItems.push({
           id: currentTargetId,
           quantity: currentTargetId === id ? quantity : 1,
           size: size,
         })
         await updateCartItemsInUser({
-          items: user.addToCartItems,
+          items: USER.addToCartItems,
           setIsError,
           navigate,
         })
+        setUser(USER)
 
         const btn = e.target
         btn.innerHTML = "Added To Cart"
@@ -528,17 +530,19 @@ export default function ProductDetailsPage() {
       e.preventDefault()
       e.stopPropagation()
       const currentTargetId = Number(e.target.value)
+      const USER = {...user}
 
-      const isAddedToWishlist = user.addToWishlistItems.filter(
+      const wishItem = USER.addToWishlistItems.find(
         (item) => item.id === currentTargetId,
       )
-      if (!isAddedToWishlist.length) {
-        user.addToWishlistItems.push({ id: currentTargetId })
+      if (!wishItem) {
+        USER.addToWishlistItems.push({ id: currentTargetId })
         await updateWishlistItemsInUser({
-          items: user.addToWishlistItems,
+          items: USER.addToWishlistItems,
           setIsError,
           navigate,
         })
+        setUser(USER)
 
         const btn = e.target
         btn.innerHTML = "Added To Wishlist"

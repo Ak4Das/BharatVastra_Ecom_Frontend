@@ -145,7 +145,7 @@ export default function Header({
                     />
                   ) : (
                     <div className="bg-info fs-5 d-flex align-items-center justify-content-center">
-                      {user && user.name.charAt(0).toUpperCase()}
+                      {user && user.name?.charAt(0).toUpperCase()}
                     </div>
                   )}
                 </div>
