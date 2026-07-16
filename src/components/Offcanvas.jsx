@@ -259,7 +259,7 @@ export default function Offcanvas({
               onChange={filterByCategory}
             />
             <label htmlFor="panjabi" className="ms-2">
-              panjabi
+              Panjabi
             </label>
             <br />
             <input

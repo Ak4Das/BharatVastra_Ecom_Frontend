@@ -20,14 +20,24 @@
     height: 350px !important;
   }
   .categoryCard {
-    width: 75%;
+    width: 86%;
     margin-inline: auto;
     margin-top: 16px;
+  }
+}
+@media (max-width: 450px) {
+  .categoryCard {
+    width: 91%;
   }
 }
 @media (max-width: 420px) {
   .image {
     height: 300px !important;
+  }
+}
+@media (max-width: 400px) {
+  .categoryCard {
+    width: 100%;
   }
 }
 @media (max-width: 320px) {
