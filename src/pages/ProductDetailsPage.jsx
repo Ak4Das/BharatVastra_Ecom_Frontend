@@ -70,6 +70,7 @@ export default function ProductDetailsPage() {
   const [knowMore, setKnowMore] = useState(false)
   const [rawProduct, setRawProduct] = useState(null)
   const [similarProducts, setSimilarProducts] = useState([])
+  const [createOrderData, setCreateOrderData] = useState(null)
 
   const { id: paramId } = useParams()
   const id = Number(paramId)
@@ -77,8 +78,6 @@ export default function ProductDetailsPage() {
   console.log(user)
   const userId = user._id
   const userExists = user && Object.keys(user).length > 0
-
-  const [createOrderData, setCreateOrderData] = useState(null)
 
   const camelCaseToTitle = (camelCase) => {
     const wordsArray = []
@@ -106,6 +105,7 @@ export default function ProductDetailsPage() {
     return `${today.getDate()} ${MONTHS[today.getMonth()]} ${today.getFullYear()}`
   }
 
+  // For the first time when data was fetch
   const getFinalClothsData = (clothsData) => {
     if (!userExists) return clothsData
     return clothsData.map((cloth) => {
@@ -114,13 +114,10 @@ export default function ProductDetailsPage() {
       const cartItem = user.addToCartItems?.find(
         (item) => item.id === clothCopy.id,
       )
-
       if (cartItem) {
         clothCopy.addToCart = true
         clothCopy.quantity = cartItem.quantity || 1
         clothCopy.size = cartItem.size || ""
-      } else {
-        delete clothCopy.addToCart
       }
 
       const wishlistItem = user.addToWishlistItems.find(
@@ -128,13 +125,13 @@ export default function ProductDetailsPage() {
       )
       if (wishlistItem) {
         clothCopy.addToWishList = true
-      } else {
-        delete clothCopy.addToWishList
       }
+
       return clothCopy
     })
   }
 
+  // For user interactions
   const product = useMemo(() => {
     if (!rawProduct) return null
     const computedProduct = { ...rawProduct }
@@ -148,6 +145,7 @@ export default function ProductDetailsPage() {
         computedProduct.quantity = cartItem.quantity || 1
         computedProduct.size = cartItem.size || ""
       } else {
+        delete computedProduct.addToCart
         computedProduct.quantity = quantity
         computedProduct.size = size
       }
@@ -157,6 +155,8 @@ export default function ProductDetailsPage() {
       )
       if (wishItem) {
         computedProduct.addToWishList = true
+      } else {
+        delete computedProduct.addToWishList
       }
     }
     return computedProduct
@@ -255,6 +255,7 @@ export default function ProductDetailsPage() {
     updateCreateOrderData()
   }, [product?.id, userId])
 
+  // Used for syncing user and createOrder data
   useEffect(() => {
     async function syncChanges() {
       try {
