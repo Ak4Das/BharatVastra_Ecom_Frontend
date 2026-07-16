@@ -239,13 +239,10 @@ export default function ProductDetailsPage() {
 
   useEffect(() => {
     async function updateCreateOrderData() {
+      if (!product || !userId) return
       try {
-        if (product) {
-          if (userId) {
-            const obj = { products: [product], userId }
-            await updateCreateOrder(userId, obj)
-          }
-        }
+        const obj = { products: [product], userId }
+        await updateCreateOrder(userId, obj)
       } catch (error) {
         if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
           console.error(error)
@@ -285,29 +282,28 @@ export default function ProductDetailsPage() {
           }
         }
 
-        if (size) {
-          if (createOrderData && createOrderData[0]) {
-            createOrderData[0].products.forEach((item) => (item.size = size))
-            product.size = size
-            const createOrderObj = {
-              products: createOrderData[0].products,
-              userId,
-            }
-            const response = await fetchCreateOrderByUserIdAndUpdate({
-              userId: userId,
-              createOrder: createOrderObj,
-              setIsError,
-              navigate,
-            })
-
-            setCreateOrderData([response])
+        let currentOrders = createOrderData ? [...createOrderData] : []
+        if (size && currentOrders[0]) {
+          currentOrders[0].products.forEach((item) => (item.size = size))
+          product.size = size
+          const createOrderObj = {
+            products: currentOrders[0].products,
+            userId,
           }
+          const response = await fetchCreateOrderByUserIdAndUpdate({
+            userId: userId,
+            createOrder: createOrderObj,
+            setIsError,
+            navigate,
+          })
+
+          setCreateOrderData([response])
         }
 
         product.freeDelivery = !!isFreeDeliveryAvailable
 
-        if (createOrderData && createOrderData[0]) {
-          const filteredItem = createOrderData[0].products.filter(
+        if (currentOrders[0]) {
+          const filteredItem = currentOrders[0].products.filter(
             (item) => item.id !== product.id,
           )
 
@@ -344,7 +340,7 @@ export default function ProductDetailsPage() {
       }
     }
     userId && syncChanges()
-  }, [isUpdated, userId])
+  }, [isUpdated, userId, userExists, product, createOrderData])
 
   useEffect(() => {
     let timerId = null
