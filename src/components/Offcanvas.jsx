@@ -98,17 +98,17 @@ export default function Offcanvas({
         <section className="my-3">
           <b>Price</b>
           <div className="d-flex justify-content-between">
-            <span>0</span>
-            <span>10000</span>
-            <span>20000</span>
+            <span>1000</span>
+            <span>3000</span>
+            <span>5000</span>
           </div>
           <input
             type="range"
             className="w-100"
             onChange={filterWithPrice}
-            min={0}
-            max={20000}
-            defaultValue={0}
+            min={1000}
+            max={5000}
+            defaultValue={1000}
           />
         </section>
         <section className="my-3">
