@@ -75,7 +75,7 @@ export default function ProductDetailsPage() {
   const { id: paramId } = useParams()
   const id = Number(paramId)
   const { user, setUser } = GetUser()
-  console.log(user)
+  console.log(user.email)
   const userId = user._id
   const userExists = user && Object.keys(user).length > 0
 

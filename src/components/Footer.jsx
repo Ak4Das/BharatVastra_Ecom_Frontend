@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom"
 import { FooterWrapper } from "../services/styledComponents"
-import { FaWhatsapp } from "react-icons/fa"
-import { MdMailOutline, MdOutlinePhone } from "react-icons/md"
+import { FaDiscord, FaWhatsapp } from "react-icons/fa"
+import { MdMailOutline } from "react-icons/md"
 
 export default function Footer() {
   return (
@@ -36,9 +36,9 @@ export default function Footer() {
           <div className="footer-social">
             <h3>Connect Us</h3>
             <div className="footer-social--icons">
-              <a href="tel:+919883620996" target="_blank">
+              <a href="https://discordapp.com/users/1319317746579669056" target="_blank">
                 <div>
-                  <MdOutlinePhone className="icons" />
+                  <FaDiscord className="icons" />
                 </div>
               </a>
               <a href="https://wa.me/9883620996" target="_blank">
