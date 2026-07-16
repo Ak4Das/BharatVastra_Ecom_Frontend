@@ -260,9 +260,10 @@ export default function ProductDetailsPage() {
       try {
         if (!isUpdated || !product || !userExists) return
         const USER = { ...user }
+        const PRODUCT = { ...product }
 
         const cartItem = USER.addToCartItems?.find(
-          (item) => item.id === product.id,
+          (item) => item.id === PRODUCT.id,
         )
 
         if (cartItem) {
@@ -274,18 +275,18 @@ export default function ProductDetailsPage() {
               navigate,
             })
             setUser(USER)
-            product.quantity = quantity
+            PRODUCT.quantity = quantity
           }
         } else {
           if (quantity > 1) {
-            product.quantity = quantity
+            PRODUCT.quantity = quantity
           }
         }
 
         let currentOrders = createOrderData ? [...createOrderData] : []
         if (size && currentOrders[0]) {
           currentOrders[0].products.forEach((item) => (item.size = size))
-          product.size = size
+          PRODUCT.size = size
           const createOrderObj = {
             products: currentOrders[0].products,
             userId,
@@ -300,11 +301,11 @@ export default function ProductDetailsPage() {
           setCreateOrderData([response])
         }
 
-        product.freeDelivery = !!isFreeDeliveryAvailable
+        PRODUCT.freeDelivery = !!isFreeDeliveryAvailable
 
         if (currentOrders[0]) {
           const filteredItem = currentOrders[0].products.filter(
-            (item) => item.id !== product.id,
+            (item) => item.id !== PRODUCT.id,
           )
 
           filteredItem.forEach((prod) => {
@@ -319,7 +320,7 @@ export default function ProductDetailsPage() {
             if (wishItem) prod.addToWishList = true
           })
 
-          filteredItem.push(product)
+          filteredItem.push(PRODUCT)
           const createOrderObj = { products: filteredItem, userId }
           const result = await fetchCreateOrderByUserIdAndUpdate({
             userId: userId,
@@ -331,6 +332,7 @@ export default function ProductDetailsPage() {
           setCreateOrderData([result])
         }
 
+        setRawProduct(PRODUCT)
         setUpdated(false)
       } catch (error) {
         if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
@@ -424,11 +426,12 @@ export default function ProductDetailsPage() {
   }
 
   async function increaseCount() {
+    if (!qtyInputRef.current || !userExists) return
     try {
-      if (!qtyInputRef.current || !userExists) return
       let targetValue = Number(qtyInputRef.current.value) + 1
       qtyInputRef.current.value = targetValue
       const USER = { ...user }
+      const PRODUCT = { ...product }
 
       const clothItem = USER.addToCartItems?.find((item) => item.id === id)
       if (clothItem) {
@@ -441,7 +444,8 @@ export default function ProductDetailsPage() {
         setUser(USER)
       }
 
-      if (product) product.quantity = targetValue
+      if (PRODUCT) PRODUCT.quantity = targetValue
+      setRawProduct(PRODUCT)
       setQuantity(targetValue)
       setUpdated(true)
     } catch (error) {
@@ -453,14 +457,15 @@ export default function ProductDetailsPage() {
   }
 
   async function decreaseCount() {
+    if (!qtyInputRef.current || !userExists) return
     try {
-      if (!qtyInputRef.current || !userExists) return
       let targetValue = Number(qtyInputRef.current.value)
 
       if (targetValue > 1 && userExists) {
         targetValue--
         qtyInputRef.current.value = targetValue
         const USER = { ...user }
+        const PRODUCT = { ...product }
 
         const clothItem = USER.addToCartItems?.find((item) => item.id === id)
         if (clothItem) {
@@ -473,7 +478,8 @@ export default function ProductDetailsPage() {
           setUser(USER)
         }
 
-        if (product) product.quantity = targetValue
+        if (PRODUCT) PRODUCT.quantity = targetValue
+        setRawProduct(PRODUCT)
         setQuantity(targetValue)
         setUpdated(true)
       }
@@ -572,6 +578,7 @@ export default function ProductDetailsPage() {
   }
 
   async function addToCreateOrderCheckboxHandler(e, productId) {
+    if (!createOrderData || !createOrderData[0]) return
     try {
       const checked = e.target.checked
       const targetProduct = await fetchClothById({
@@ -579,7 +586,6 @@ export default function ProductDetailsPage() {
         setIsError,
       })
 
-      if (!createOrderData || !createOrderData[0]) return
       const isIncluded = createOrderData[0].products.some(
         (item) => item.id === targetProduct.id,
       )
@@ -588,9 +594,10 @@ export default function ProductDetailsPage() {
         if (!isIncluded) {
           if (size) targetProduct.size = size
           targetProduct.quantity = 1
-          createOrderData[0].products.push(targetProduct)
+          const currentOrder = [...createOrderData]
+          currentOrder[0].products.push(targetProduct)
           const createOrderObj = {
-            products: createOrderData[0].products,
+            products: currentOrder[0].products,
             userId,
           }
           const result = await fetchCreateOrderByUserIdAndUpdate({
