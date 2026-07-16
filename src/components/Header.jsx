@@ -217,7 +217,7 @@ export default function Header({
                       left: "12px",
                     }}
                   >
-                    {user ? user.addToWishlistItems.length : 0}
+                    {user ? user.addToWishlistItems?.length : 0}
                   </div>
                   {"   "}
                   <span className="ms-1">Wishlist</span>
@@ -237,7 +237,7 @@ export default function Header({
                       left: "3px",
                     }}
                   >
-                    {user ? user.addToCartItems.length : 0}
+                    {user ? user.addToCartItems?.length : 0}
                   </div>
                   <span className="ms-1">Cart</span>
                 </NavLink>
@@ -306,7 +306,7 @@ export default function Header({
                       left: "33px",
                     }}
                   >
-                    {user ? user.addToWishlistItems.length : 0}
+                    {user ? user.addToWishlistItems?.length : 0}
                   </div>
                   {"   "}
                   <span className="ms-1">Wishlist</span>
@@ -329,7 +329,7 @@ export default function Header({
                       left: "38px",
                     }}
                   >
-                    {user ? user.addToCartItems.length : 0}
+                    {user ? user.addToCartItems?.length : 0}
                   </div>
                   <span className="ms-1">Cart</span>
                 </NavLink>
