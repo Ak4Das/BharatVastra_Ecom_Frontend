@@ -185,7 +185,7 @@ export default function Header({
                       className={`lh-sm px-1 ${styles.profileBtnInHeader}`}
                     >
                       <p className="my-0 fw-medium">
-                        Hello, {user && user.name.split(" ")[0]}
+                        Hello, {user && user.name?.split(" ")[0]}
                       </p>
                       <p className="my-0 text-primary fw-bold">
                         Account <i className="bi bi-chevron-down"></i>
@@ -271,7 +271,7 @@ export default function Header({
                       className={`lh-sm px-1 ${styles.profileBtnInHeader}`}
                     >
                       <p className="my-0 fw-medium">
-                        Hello, {user && user.name.split(" ")[0]}
+                        Hello, {user && user.name?.split(" ")[0]}
                       </p>
                       <p className="my-0 text-primary fw-bold">
                         Account <i className="bi bi-chevron-down"></i>
