@@ -48,6 +48,7 @@ export default function ProductListingPage() {
   const isCategory = category.length ? true : false
 
   const [showHamburgerPointer, setShowHamburgerPointer] = useState(false)
+  const [openOffcanvas, setOpenOffcanvas] = useState(false)
 
   const [CreateOrderInDatabase, setCreateOrderInDatabase] = useState(null)
   const [disableCartBtnId, setDisableCartBtnId] = useState(null)
@@ -364,7 +365,7 @@ export default function ProductListingPage() {
         } else {
           // For interactivity
           const btn = e.target
-          btn.innerHTML = 'Added To Wishlist'
+          btn.innerHTML = "Added To Wishlist"
           btn.style.backgroundColor = "#05a058"
           btn.style.color = "white"
           setTimeout(() => {
@@ -482,6 +483,8 @@ export default function ProductListingPage() {
           }}
           isCategory={isCategory}
           setShowHamburgerPointer={setShowHamburgerPointer}
+          openOffcanvas={openOffcanvas}
+          setOpenOffcanvas={setOpenOffcanvas}
         />
 
         <div className="mx-5 my-3">
@@ -511,148 +514,152 @@ export default function ProductListingPage() {
             <ProductListingShimmer />
           ) : (
             <div className="row position-relative" style={{ zIndex: 1 }}>
-              {finalProducts.map((product) => (
-                <div
-                  key={product.id}
-                  className="col-sm-6 col-xl-4 col-xxl-3 mb-3"
-                >
-                  <Link
-                    className="text-decoration-none"
-                    to={`/productDetails/${product.id}`}
+              {!finalProducts.length ? (
+                <p className="text-center">Sorry no product available.</p>
+              ) : (
+                finalProducts.map((product) => (
+                  <div
+                    key={product.id}
+                    className="col-sm-6 col-xl-4 col-xxl-3 mb-3"
                   >
-                    <div className={`card ${styles.productCard}`}>
-                      <div className={`${styles.ProductImageContainer}`}>
-                        <img
-                          src={product.url}
-                          className={`img-fluid ${styles.listProductImage}`}
-                          style={{ height: "300px" }}
-                          alt="productImage"
-                        />
-                      </div>
-                      <div className="card-body d-flex flex-column justify-content-between w-100">
-                        <p
-                          id="name"
-                          className={`my-0 lh-sm ${styles.listProductName} lh-base`}
-                        >
-                          {!!Number(product.offer.replace("%", "")) && (
-                            <span className="badge text-bg-warning me-1">
-                              Diwali Offer
-                            </span>
-                          )}
-                          {product.newArrival === true && (
-                            <span className="badge text-bg-primary me-1">
-                              New
-                            </span>
-                          )}
-                          {product.freeDelivery && (
-                            <span className="badge text-bg-success">
-                              Free Deilvery
-                            </span>
-                          )}{" "}
-                          {product.name.length > 61
-                            ? product.name.slice(0, 60).concat("...")
-                            : product.name}
-                        </p>
-                        <div className="d-flex align-items-end">
-                          <RatingBar rating={product.rating} />
-                          <span
-                            style={{ fontSize: "15px" }}
-                            className={`ms-1 ${styles.rating_listingPage}`}
-                          >
-                            {product.rating}
-                          </span>
+                    <Link
+                      className="text-decoration-none"
+                      to={`/productDetails/${product.id}`}
+                    >
+                      <div className={`card ${styles.productCard}`}>
+                        <div className={`${styles.ProductImageContainer}`}>
+                          <img
+                            src={product.url}
+                            className={`img-fluid ${styles.listProductImage}`}
+                            style={{ height: "300px" }}
+                            alt="productImage"
+                          />
                         </div>
-                        <div>
-                          <p id="discount" className="my-0">
-                            <b>₹</b>
-                            {Math.round(
-                              product.price -
-                                (product.price *
-                                  (Number(product.offer.replace("%", ""))
-                                    ? Number(product.offer.replace("%", ""))
-                                    : Number(
-                                        product.discount.replace("%", ""),
-                                      ))) /
-                                  100,
+                        <div className="card-body d-flex flex-column justify-content-between w-100">
+                          <p
+                            id="name"
+                            className={`my-0 lh-sm ${styles.listProductName} lh-base`}
+                          >
+                            {!!Number(product.offer.replace("%", "")) && (
+                              <span className="badge text-bg-warning me-1">
+                                Diwali Offer
+                              </span>
                             )}
-                            (-
-                            {Number(product.offer.replace("%", ""))
-                              ? product.offer
-                              : product.discount}
-                            )
+                            {product.newArrival === true && (
+                              <span className="badge text-bg-primary me-1">
+                                New
+                              </span>
+                            )}
+                            {product.freeDelivery && (
+                              <span className="badge text-bg-success">
+                                Free Deilvery
+                              </span>
+                            )}{" "}
+                            {product.name.length > 61
+                              ? product.name.slice(0, 60).concat("...")
+                              : product.name}
                           </p>
-                          <small
-                            id="M.R.P."
-                            className="text-decoration-line-through"
-                          >
-                            M.R.P. ₹{product.price}
-                          </small>
-                        </div>
-                        <div>
-                          <div>
-                            {!user ? (
-                              <button
-                                className={`btn btn-secondary w-100 mb-1 ${styles.addToCart}`}
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  toast.info("Please login to your account")
-                                }}
-                              >
-                                {product.addToCart
-                                  ? "Added To Cart"
-                                  : "Add To cart"}
-                              </button>
-                            ) : (
-                              <button
-                                value={product.id}
-                                className={`btn btn-secondary w-100 mb-1 ${styles.addToCart}`}
-                                onClick={handleAddToCart}
-                                disabled={
-                                  product.id === Number(disableCartBtnId)
-                                }
-                              >
-                                {product.addToCart
-                                  ? "Added To Cart"
-                                  : "Add To cart"}
-                              </button>
-                            )}
+                          <div className="d-flex align-items-end">
+                            <RatingBar rating={product.rating} />
+                            <span
+                              style={{ fontSize: "15px" }}
+                              className={`ms-1 ${styles.rating_listingPage}`}
+                            >
+                              {product.rating}
+                            </span>
                           </div>
                           <div>
-                            {!user ? (
-                              <button
-                                className={`btn btn-outline-secondary w-100 ${styles.saveToWishlist}`}
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  toast.info("Please login to your account")
-                                }}
-                              >
-                                {product.addToWishList
-                                  ? "Added To Wishlist"
-                                  : "Save To Wishlist"}
-                              </button>
-                            ) : (
-                              <button
-                                value={product.id}
-                                className={`btn btn-outline-secondary w-100 ${styles.saveToWishlist}`}
-                                onClick={handleAddToWishlist}
-                                disabled={
-                                  product.id === Number(disableWishlistBtnId)
-                                }
-                              >
-                                {product.addToWishList
-                                  ? "Added To Wishlist"
-                                  : "Save To Wishlist"}
-                              </button>
-                            )}
+                            <p id="discount" className="my-0">
+                              <b>₹</b>
+                              {Math.round(
+                                product.price -
+                                  (product.price *
+                                    (Number(product.offer.replace("%", ""))
+                                      ? Number(product.offer.replace("%", ""))
+                                      : Number(
+                                          product.discount.replace("%", ""),
+                                        ))) /
+                                    100,
+                              )}
+                              (-
+                              {Number(product.offer.replace("%", ""))
+                                ? product.offer
+                                : product.discount}
+                              )
+                            </p>
+                            <small
+                              id="M.R.P."
+                              className="text-decoration-line-through"
+                            >
+                              M.R.P. ₹{product.price}
+                            </small>
+                          </div>
+                          <div>
+                            <div>
+                              {!user ? (
+                                <button
+                                  className={`btn btn-secondary w-100 mb-1 ${styles.addToCart}`}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    toast.info("Please login to your account")
+                                  }}
+                                >
+                                  {product.addToCart
+                                    ? "Added To Cart"
+                                    : "Add To cart"}
+                                </button>
+                              ) : (
+                                <button
+                                  value={product.id}
+                                  className={`btn btn-secondary w-100 mb-1 ${styles.addToCart}`}
+                                  onClick={handleAddToCart}
+                                  disabled={
+                                    product.id === Number(disableCartBtnId)
+                                  }
+                                >
+                                  {product.addToCart
+                                    ? "Added To Cart"
+                                    : "Add To cart"}
+                                </button>
+                              )}
+                            </div>
+                            <div>
+                              {!user ? (
+                                <button
+                                  className={`btn btn-outline-secondary w-100 ${styles.saveToWishlist}`}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    toast.info("Please login to your account")
+                                  }}
+                                >
+                                  {product.addToWishList
+                                    ? "Added To Wishlist"
+                                    : "Save To Wishlist"}
+                                </button>
+                              ) : (
+                                <button
+                                  value={product.id}
+                                  className={`btn btn-outline-secondary w-100 ${styles.saveToWishlist}`}
+                                  onClick={handleAddToWishlist}
+                                  disabled={
+                                    product.id === Number(disableWishlistBtnId)
+                                  }
+                                >
+                                  {product.addToWishList
+                                    ? "Added To Wishlist"
+                                    : "Save To Wishlist"}
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </Link>
-                </div>
-              ))}
+                    </Link>
+                  </div>
+                ))
+              )}
             </div>
           )}
 
@@ -679,7 +686,7 @@ export default function ProductListingPage() {
           )}
         </div>
       </main>
-      <Footer />
+      {!openOffcanvas && <Footer />}
     </>
   )
 }

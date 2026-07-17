@@ -14,9 +14,10 @@ export default function Offcanvas({
   setAge,
   isCategory,
   setShowHamburgerPointer,
+  openOffcanvas: open,
+  setOpenOffcanvas: setOpen,
 }) {
   // open useState is used only to open or close Offcanvas
-  const [open, setOpen] = useState(false)
   function filterWithPrice(e) {
     setPrice(e.target.value)
   }
