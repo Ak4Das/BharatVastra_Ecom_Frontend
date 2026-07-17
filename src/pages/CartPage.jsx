@@ -37,6 +37,7 @@ export default function CartPage() {
 
   const [disableCartBtnId, setDisableCartBtnId] = useState(null)
   const [disableWishlistBtnId, setDisableWishlistBtnId] = useState(null)
+  const [disableQuantityBtnId, setDisableQuantityBtnId] = useState(null)
 
   useEffect(() => {
     setLoading(true)
@@ -594,6 +595,8 @@ export default function CartPage() {
                                             e.preventDefault()
                                             e.stopPropagation()
 
+                                            setDisableQuantityBtnId(product.id)
+
                                             let inputElementValue = Number(
                                               e.target.nextElementSibling.value,
                                             )
@@ -658,8 +661,13 @@ export default function CartPage() {
                                               console.error(error)
                                             }
                                             setIsError(error.message)
+                                          } finally {
+                                            setDisableQuantityBtnId(null)
                                           }
                                         }}
+                                        disabled={
+                                          disableQuantityBtnId === product.id
+                                        }
                                       >
                                         {" "}
                                         -{" "}
@@ -692,6 +700,8 @@ export default function CartPage() {
                                             // To stop Event Bubbling
                                             e.preventDefault()
                                             e.stopPropagation()
+
+                                            setDisableQuantityBtnId(product.id)
 
                                             // Update the input element value
                                             let inputElementValue = Number(
@@ -755,8 +765,13 @@ export default function CartPage() {
                                               console.error(error)
                                             }
                                             setIsError(error.message)
+                                          } finally {
+                                            setDisableQuantityBtnId(null)
                                           }
                                         }}
+                                        disabled={
+                                          disableQuantityBtnId === product.id
+                                        }
                                       >
                                         {" "}
                                         +{" "}

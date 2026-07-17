@@ -40,6 +40,8 @@ export default function PaymentMethods() {
   const [coupon, setCoupon] = useState("")
   const [editItems, setEditItems] = useState(false)
 
+  const [disableQuantityBtnId, setDisableQuantityBtnId] = useState(null)
+
   const { user, setUser } = GetUser()
   const userId = user._id
 
@@ -220,6 +222,7 @@ export default function PaymentMethods() {
 
   async function increaseCount(e, product) {
     try {
+      setDisableQuantityBtnId(product.id)
       // Update the input element value
       let inputElementValue = Number(e.target.previousElementSibling.value)
       e.target.previousElementSibling.value = ++inputElementValue
@@ -285,6 +288,8 @@ export default function PaymentMethods() {
         console.error(error)
       }
       setIsError(error.message)
+    } finally {
+      setDisableQuantityBtnId(null)
     }
   }
 
@@ -580,6 +585,7 @@ export default function PaymentMethods() {
                               onClick={async (e) => {
                                 increaseCount(e, product)
                               }}
+                              disabled={disableQuantityBtnId === product.id}
                             >
                               +
                             </button>

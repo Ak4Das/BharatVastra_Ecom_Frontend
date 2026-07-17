@@ -74,6 +74,7 @@ export default function ProductDetailsPage() {
 
   const [disableCartBtnId, setDisableCartBtnId] = useState(null)
   const [disableWishlistBtnId, setDisableWishlistBtnId] = useState(null)
+  const [disableQuantityBtn, setDisableQuantityBtn] = useState(false)
 
   const { id: paramId } = useParams()
   const id = Number(paramId)
@@ -432,6 +433,7 @@ export default function ProductDetailsPage() {
   async function increaseCount() {
     if (!qtyInputRef.current || !userExists) return
     try {
+      setDisableQuantityBtn(true)
       let targetValue = Number(qtyInputRef.current.value) + 1
       qtyInputRef.current.value = targetValue
       const USER = { ...user }
@@ -457,12 +459,15 @@ export default function ProductDetailsPage() {
         console.error(error)
       }
       setIsError(error.message)
+    } finally {
+      setDisableQuantityBtn(false)
     }
   }
 
   async function decreaseCount() {
     if (!qtyInputRef.current || !userExists) return
     try {
+      setDisableQuantityBtn(true)
       let targetValue = Number(qtyInputRef.current.value)
 
       if (targetValue > 1 && userExists) {
@@ -492,6 +497,8 @@ export default function ProductDetailsPage() {
         console.error(error)
       }
       setIsError(error.message)
+    } finally {
+      setDisableQuantityBtn(false)
     }
   }
 
@@ -947,6 +954,7 @@ export default function ProductDetailsPage() {
                           ? decreaseCount(e)
                           : toast.info("Please login to your account")
                       }
+                      disabled={disableQuantityBtn}
                     >
                       {" "}
                       -{" "}
@@ -961,6 +969,7 @@ export default function ProductDetailsPage() {
                       ref={qtyInputRef}
                       onChange={async (e) => {
                         try {
+                          setDisableQuantityBtn(true)
                           // Update user in Database
                           const USER = { ...user }
                           const clothItem = USER.addToCartItems.find(
@@ -985,6 +994,8 @@ export default function ProductDetailsPage() {
                             console.error(error)
                           }
                           setIsError(error.message)
+                        } finally {
+                          setDisableQuantityBtn(false)
                         }
                       }}
                     />
@@ -995,6 +1006,7 @@ export default function ProductDetailsPage() {
                           ? increaseCount(e)
                           : toast.info("Please login to your account")
                       }
+                      disabled={disableQuantityBtn}
                     >
                       {" "}
                       +{" "}
