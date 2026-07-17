@@ -31,7 +31,6 @@ export default function NewArrival() {
 
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
-  const [actionLoading, setActionLoading] = useState({})
   const [isError, setIsError] = useState("")
   const [search, setSearch] = useState([])
 
@@ -40,6 +39,9 @@ export default function NewArrival() {
 
   const [CreateOrderInDatabase, setCreateOrderInDatabase] = useState(null)
   const [isUpdate, setUpdate] = useState(false)
+
+  const [disableCartBtnId, setDisableCartBtnId] = useState(null)
+  const [disableWishlistBtnId, setDisableWishlistBtnId] = useState(null)
 
   useEffect(() => {
     async function fetchData() {
@@ -127,9 +129,6 @@ export default function NewArrival() {
     e.preventDefault()
     e.stopPropagation()
 
-    const productId = e.target.value
-    setActionLoading((prev) => ({ ...prev, [productId]: true }))
-
     try {
       // debugger
       const promises = []
@@ -138,6 +137,7 @@ export default function NewArrival() {
         (item) => item.id === Number(e.target.value),
       )
       if (!isAddedToCart.length) {
+        setDisableCartBtnId(e.target.value)
         // Update user in Database
         user.addToCartItems.push({
           id: Number(e.target.value),
@@ -237,16 +237,13 @@ export default function NewArrival() {
       }
       setIsError(error.message)
     } finally {
-      setActionLoading((prev) => ({ ...prev, [productId]: false }))
+      setDisableCartBtnId(null)
     }
   }
 
   const handleAddToWishlist = async (e) => {
     e.preventDefault()
     e.stopPropagation()
-
-    const productId = e.target.value
-    setActionLoading((prev) => ({ ...prev, [`wish-${productId}`]: true }))
 
     try {
       const promises = []
@@ -255,6 +252,7 @@ export default function NewArrival() {
         (item) => item.id === Number(e.target.value),
       )
       if (!isAddedToWishlist) {
+        setDisableWishlistBtnId(e.target.value)
         user.addToWishlistItems.push({ id: Number(e.target.value) })
         promises.push({
           name: "user",
@@ -345,7 +343,7 @@ export default function NewArrival() {
       }
       setIsError(error.message)
     } finally {
-      setActionLoading((prev) => ({ ...prev, [`wish-${productId}`]: false }))
+      setDisableWishlistBtnId(null)
     }
   }
 
@@ -490,6 +488,9 @@ export default function NewArrival() {
                                 value={product.id}
                                 className={`btn btn-secondary w-100 mb-1 ${styles.addToCart}`}
                                 onClick={handleAddToCart}
+                                disabled={
+                                  product.id === Number(disableCartBtnId)
+                                }
                               >
                                 {product.addToCart
                                   ? "Added To Cart"
@@ -516,6 +517,9 @@ export default function NewArrival() {
                                 value={product.id}
                                 className={`btn btn-outline-secondary w-100 ${styles.saveToWishlist}`}
                                 onClick={handleAddToWishlist}
+                                disabled={
+                                  product.id === Number(disableWishlistBtnId)
+                                }
                               >
                                 {product.addToWishList
                                   ? "Added To Wishlist"

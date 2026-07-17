@@ -35,6 +35,9 @@ export default function CartPage() {
   const [permission, setPermission] = useState("")
   const [data, setData] = useState([])
 
+  const [disableCartBtnId, setDisableCartBtnId] = useState(null)
+  const [disableWishlistBtnId, setDisableWishlistBtnId] = useState(null)
+
   useEffect(() => {
     setLoading(true)
   }, [])
@@ -239,6 +242,8 @@ export default function CartPage() {
 
       if (isAlreadyInWishlist) return
 
+      setDisableWishlistBtnId(e.target.value)
+
       const promises = []
 
       const updatedWishlist = [
@@ -330,6 +335,8 @@ export default function CartPage() {
         console.error(error)
       }
       setIsError(error.message)
+    } finally {
+      setDisableWishlistBtnId(null)
     }
   }
 
@@ -395,6 +402,8 @@ export default function CartPage() {
       e.preventDefault()
       e.stopPropagation()
 
+      setDisableCartBtnId(e.target.value)
+
       // Update finalClothsData in memory
       const item = finalClothsData.find((Product) => Product.id === product.id)
       if (item) {
@@ -438,6 +447,8 @@ export default function CartPage() {
         console.error(error)
       }
       setIsError(error.message)
+    } finally {
+      setDisableCartBtnId(null)
     }
   }
 
@@ -847,6 +858,9 @@ export default function CartPage() {
                                     className="btn btn-secondary w-100 my-2"
                                     value={product.id}
                                     onClick={(e) => removeFromCart(e, product)}
+                                    disabled={
+                                      product.id === Number(disableCartBtnId)
+                                    }
                                   >
                                     Remove From Cart
                                   </button>
@@ -854,6 +868,10 @@ export default function CartPage() {
                                     className="btn btn-outline-secondary w-100"
                                     value={product.id}
                                     onClick={moveToWishlist}
+                                    disabled={
+                                      product.id ===
+                                      Number(disableWishlistBtnId)
+                                    }
                                   >
                                     {product.addToWishList
                                       ? "Added To Wishlist"

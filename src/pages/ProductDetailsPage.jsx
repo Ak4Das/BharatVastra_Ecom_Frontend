@@ -72,6 +72,9 @@ export default function ProductDetailsPage() {
   const [similarProducts, setSimilarProducts] = useState([])
   const [createOrderData, setCreateOrderData] = useState(null)
 
+  const [disableCartBtnId, setDisableCartBtnId] = useState(null)
+  const [disableWishlistBtnId, setDisableWishlistBtnId] = useState(null)
+
   const { id: paramId } = useParams()
   const id = Number(paramId)
   const { user, setUser } = GetUser()
@@ -503,6 +506,7 @@ export default function ProductDetailsPage() {
         (item) => item.id === currentTargetId,
       )
       if (!cartItem) {
+        setDisableCartBtnId(e.target.value)
         USER.addToCartItems.push({
           id: currentTargetId,
           quantity: currentTargetId === id ? quantity : 1,
@@ -534,6 +538,8 @@ export default function ProductDetailsPage() {
         console.error(error)
       }
       setIsError(error.message)
+    } finally {
+      setDisableCartBtnId(null)
     }
   }
 
@@ -548,6 +554,7 @@ export default function ProductDetailsPage() {
         (item) => item.id === currentTargetId,
       )
       if (!wishItem) {
+        setDisableWishlistBtnId(e.target.value)
         USER.addToWishlistItems.push({ id: currentTargetId })
         await updateWishlistItemsInUser({
           items: USER.addToWishlistItems,
@@ -575,6 +582,8 @@ export default function ProductDetailsPage() {
         console.error(error)
       }
       setIsError(error.message)
+    } finally {
+      setDisableWishlistBtnId(null)
     }
   }
 
@@ -837,6 +846,7 @@ export default function ProductDetailsPage() {
                             ? addToCart(e)
                             : toast.info("Please login to your account")
                         }
+                        disabled={product.id === Number(disableCartBtnId)}
                       >
                         {product.addToCart ? "Added To Cart" : "Add To cart"}
                       </button>
@@ -864,6 +874,7 @@ export default function ProductDetailsPage() {
                             ? addToWishlist(e)
                             : toast.info("Please login to your account")
                         }
+                        disabled={product.id === Number(disableWishlistBtnId)}
                       >
                         {product.addToWishList
                           ? "Added To Wishlist"
@@ -1376,6 +1387,7 @@ export default function ProductDetailsPage() {
                         className="btn btn-secondary w-100 mb-2"
                         value={product.id}
                         onClick={addToCart}
+                        disabled={product.id === Number(disableCartBtnId)}
                       >
                         {product.addToCart ? "Added To Cart" : "Add To cart"}
                       </button>
@@ -1398,6 +1410,7 @@ export default function ProductDetailsPage() {
                         className="btn btn-outline-secondary w-100 mb-2"
                         value={product.id}
                         onClick={addToWishlist}
+                        disabled={product.id === Number(disableWishlistBtnId)}
                       >
                         {product.addToWishList
                           ? "Added To Wishlist"
@@ -1552,6 +1565,7 @@ export default function ProductDetailsPage() {
                         className="btn btn-warning rounded w-100 mb-2"
                         value={product.id}
                         onClick={addToCart}
+                        disabled={product.id === Number(disableCartBtnId)}
                       >
                         {product.addToCart ? "Added To Cart" : "Add To cart"}
                       </button>
@@ -1575,6 +1589,7 @@ export default function ProductDetailsPage() {
                         className="btn btn-outline-secondary rounded w-100"
                         value={product.id}
                         onClick={addToWishlist}
+                        disabled={product.id === Number(disableWishlistBtnId)}
                       >
                         {product.addToWishList
                           ? "Added To Wishlist"
@@ -2076,6 +2091,7 @@ export default function ProductDetailsPage() {
                                 ? addToCart(e)
                                 : toast.info("Please login to your account")
                             }
+                            disabled={product.id === Number(disableCartBtnId)}
                           >
                             {product.addToCart
                               ? "Added To Cart"
@@ -2123,6 +2139,9 @@ export default function ProductDetailsPage() {
                                       : toast.info(
                                           "Please login to your account",
                                         )
+                                  }
+                                  disabled={
+                                    product.id === Number(disableCartBtnId)
                                   }
                                 >
                                   {product.addToCart
@@ -2416,6 +2435,9 @@ export default function ProductDetailsPage() {
                                           "Please login to your account",
                                         )
                                   }
+                                  disabled={
+                                    product.id === Number(disableCartBtnId)
+                                  }
                                 >
                                   {product.addToCart
                                     ? "Added To Cart"
@@ -2447,6 +2469,9 @@ export default function ProductDetailsPage() {
                                       : toast.info(
                                           "Please login to your account",
                                         )
+                                  }
+                                  disabled={
+                                    product.id === Number(disableWishlistBtnId)
                                   }
                                 >
                                   {product.addToWishList

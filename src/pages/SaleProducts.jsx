@@ -38,6 +38,9 @@ export default function SaleProducts() {
   const [totalPages, setTotalPages] = useState(1)
   const [isUpdate, setUpdate] = useState(false)
 
+  const [disableCartBtnId, setDisableCartBtnId] = useState(null)
+  const [disableWishlistBtnId, setDisableWishlistBtnId] = useState(null)
+
   useEffect(() => {
     if (!userId) return
     async function fetchUserMetadata() {
@@ -147,6 +150,7 @@ export default function SaleProducts() {
         (item) => item.id === Number(e.target.value),
       )
       if (!isAddedToCart.length) {
+        setDisableCartBtnId(e.target.value)
         // Update user in Database
         user.addToCartItems.push({
           id: Number(e.target.value),
@@ -242,6 +246,8 @@ export default function SaleProducts() {
         console.error(error)
       }
       setIsError(error.message)
+    } finally {
+      setDisableCartBtnId(null)
     }
   }
 
@@ -258,6 +264,7 @@ export default function SaleProducts() {
         (item) => item.id === Number(e.target.value),
       )
       if (!isAddedToWishlist.length) {
+        setDisableWishlistBtnId(e.target.value)
         // Update user in Database
         user.addToWishlistItems.push({ id: Number(e.target.value) })
         promises.push({
@@ -345,6 +352,8 @@ export default function SaleProducts() {
         console.error(error)
       }
       setIsError(error.message)
+    } finally {
+      setDisableWishlistBtnId(null)
     }
   }
 
@@ -485,6 +494,9 @@ export default function SaleProducts() {
                                   value={product.id}
                                   className={`btn btn-secondary w-100 mb-1 ${styles.addToCart}`}
                                   onClick={addToCart}
+                                  disabled={
+                                    product.id === Number(disableCartBtnId)
+                                  }
                                 >
                                   {product.addToCart
                                     ? "Added To Cart"
@@ -511,6 +523,9 @@ export default function SaleProducts() {
                                   value={product.id}
                                   className={`btn btn-outline-secondary w-100 ${styles.saveToWishlist}`}
                                   onClick={addToWishlist}
+                                  disabled={
+                                    product.id === Number(disableWishlistBtnId)
+                                  }
                                 >
                                   {product.addToWishList
                                     ? "Added To Wishlist"

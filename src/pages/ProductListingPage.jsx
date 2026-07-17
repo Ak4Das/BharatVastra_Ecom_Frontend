@@ -50,6 +50,8 @@ export default function ProductListingPage() {
   const [showHamburgerPointer, setShowHamburgerPointer] = useState(false)
 
   const [CreateOrderInDatabase, setCreateOrderInDatabase] = useState(null)
+  const [disableCartBtnId, setDisableCartBtnId] = useState(null)
+  const [disableWishlistBtnId, setDisableWishlistBtnId] = useState(null)
 
   const uniqueCreateOrderInDatabase =
     CreateOrderInDatabase && CreateOrderInDatabase.length
@@ -180,6 +182,7 @@ export default function ProductListingPage() {
         (item) => item.id === Number(e.target.value),
       )
       if (!isAddedToCart.length) {
+        setDisableCartBtnId(e.target.value)
         // Update user in Database
         user.addToCartItems.push({
           id: Number(e.target.value),
@@ -276,6 +279,8 @@ export default function ProductListingPage() {
         console.error(error)
       }
       setIsError(error.message)
+    } finally {
+      setDisableCartBtnId(null)
     }
   }
 
@@ -291,6 +296,7 @@ export default function ProductListingPage() {
         (item) => item.id === Number(e.target.value),
       )
       if (!isAddedToWishlist.length) {
+        setDisableWishlistBtnId(e.target.value)
         // Update user in Database
         user.addToWishlistItems.push({ id: Number(e.target.value) })
         promises.push({
@@ -358,7 +364,7 @@ export default function ProductListingPage() {
         } else {
           // For interactivity
           const btn = e.target
-          btn.innerHTML = '<i className="bi bi-check2"></i>'
+          btn.innerHTML = 'Added To Wishlist'
           btn.style.backgroundColor = "#05a058"
           btn.style.color = "white"
           setTimeout(() => {
@@ -378,6 +384,8 @@ export default function ProductListingPage() {
         console.error(error)
       }
       setIsError(error.message)
+    } finally {
+      setDisableWishlistBtnId(null)
     }
   }
 
@@ -600,6 +608,9 @@ export default function ProductListingPage() {
                                 value={product.id}
                                 className={`btn btn-secondary w-100 mb-1 ${styles.addToCart}`}
                                 onClick={handleAddToCart}
+                                disabled={
+                                  product.id === Number(disableCartBtnId)
+                                }
                               >
                                 {product.addToCart
                                   ? "Added To Cart"
@@ -626,6 +637,9 @@ export default function ProductListingPage() {
                                 value={product.id}
                                 className={`btn btn-outline-secondary w-100 ${styles.saveToWishlist}`}
                                 onClick={handleAddToWishlist}
+                                disabled={
+                                  product.id === Number(disableWishlistBtnId)
+                                }
                               >
                                 {product.addToWishList
                                   ? "Added To Wishlist"
