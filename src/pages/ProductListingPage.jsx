@@ -1,6 +1,6 @@
 import styles from "../style_modules/pages_modules/ProductListing.module.css"
 import { useState, useEffect, useCallback } from "react"
-import { useParams, Link, useNavigate } from "react-router-dom"
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom"
 import { toast } from "react-toastify"
 
 import Header from "../components/Header"
@@ -27,6 +27,7 @@ export default function ProductListingPage() {
   const { user, setUser } = GetUser()
   const userId = user._id
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [loading, setLoading] = useState(true)
   const [isError, setIsError] = useState("")
@@ -437,6 +438,7 @@ export default function ProductListingPage() {
         placeHolder="Search Product"
         userDetails={user}
         search={search}
+        locationSearch={location.state?.search}
       />
 
       <SearchInPage
@@ -450,6 +452,7 @@ export default function ProductListingPage() {
         top="62px"
         zIndex={6}
         search={search}
+        locationSearch={location.state?.search}
       />
 
       <main>

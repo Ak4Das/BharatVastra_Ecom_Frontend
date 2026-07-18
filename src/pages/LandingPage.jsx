@@ -28,11 +28,15 @@ export default function LandingPage() {
   const [category, setCategory] = useState([])
   const navigate = useNavigate()
 
-  const filteredCategory = search
-    ? category.filter((category) =>
-        category.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()),
-      )
-    : category
+  useEffect(() => {
+    if (search) {
+      navigate("/products/adult", {
+        state: {
+          search,
+        },
+      })
+    }
+  }, [search])
 
   async function fetchData(setLoading, setIsError) {
     try {
@@ -119,7 +123,7 @@ export default function LandingPage() {
           ) : (
             <main className="mx-5 my-4">
               <div className="row">
-                {filteredCategory.map((category) => {
+                {category.map((category) => {
                   return (
                     <div
                       key={category.id}
@@ -650,7 +654,6 @@ export default function LandingPage() {
               </div>
             </main>
           )}
-
           <Footer />
         </>
       )}

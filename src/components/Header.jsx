@@ -16,8 +16,9 @@ export default function Header({
   page = "",
   userDetails: user,
   search,
+  locationSearch,
 }) {
-  const [input, setInput] = useState("")
+  const [input, setInput] = useState(locationSearch ? locationSearch : "")
   const [clickedHamburger, setClickedHamburger] = useState(false)
   const [categories, setCategories] = useState([])
 
@@ -72,6 +73,12 @@ export default function Header({
     }
   }
 
+  useEffect(() => {
+    if (locationSearch) {
+      handleClick()
+    }
+  }, [locationSearch])
+
   return (
     <header
       className="bg-body-tertiary "
@@ -98,7 +105,7 @@ export default function Header({
             >
               <input
                 type="text"
-                className="border border-1 w-75 p-2"
+                className={`border border-1 w-75 p-2 ${styles.searchInputInPage}`}
                 style={{ outline: "none" }}
                 placeholder={placeHolder}
                 aria-label="Search Product"

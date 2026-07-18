@@ -15,8 +15,9 @@ export default function searchInPage({
   top = "",
   zIndex = 0,
   search,
+  locationSearch,
 }) {
-  const [input, setInput] = useState("")
+  const [input, setInput] = useState(locationSearch ? locationSearch : "")
   const [categories, setCategories] = useState([])
 
   useEffect(() => {
@@ -59,6 +60,13 @@ export default function searchInPage({
       setSearch && setSearch(input)
     }
   }
+
+  useEffect(() => {
+    if (locationSearch) {
+      handleClick()
+    }
+  }, [locationSearch])
+
   return (
     <>
       {isSearchBarNeeded && (
