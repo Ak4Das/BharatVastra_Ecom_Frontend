@@ -1,5 +1,5 @@
 import styles from "../style_modules/pages_modules/ProductListing.module.css"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom"
 import { toast } from "react-toastify"
 
@@ -25,7 +25,7 @@ import { syncUserAndCreateOrder } from "../services/Function.js"
 export default function ProductListingPage() {
   const { mainCategory } = useParams()
   const { user, setUser } = GetUser()
-  const userId = user._id
+  const userId = user?._id
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -55,23 +55,22 @@ export default function ProductListingPage() {
   const [disableCartBtnId, setDisableCartBtnId] = useState(null)
   const [disableWishlistBtnId, setDisableWishlistBtnId] = useState(null)
 
-  const uniqueCreateOrderInDatabase =
-    CreateOrderInDatabase && CreateOrderInDatabase.length
-      ? CreateOrderInDatabase[0].products.reduce((acc, item) => {
-          if (!acc.length) {
-            acc.push(item)
-          } else {
-            const searchInAcc = acc.find((obj) => obj.id === item.id)
-              ? true
-              : false
-            if (!searchInAcc) {
-              acc.push(item)
-            }
-          }
-          return acc
-        }, [])
-      : []
-  const createOrder = { item: uniqueCreateOrderInDatabase }
+  const uniqueCreateOrderInDatabase = useMemo(() => {
+    if (!CreateOrderInDatabase?.length) return []
+    return CreateOrderInDatabase[0].products.reduce((acc, item) => {
+      if (!acc.some((obj) => obj.id === item.id)) {
+        acc.push(item)
+      }
+      return acc
+    }, [])
+  }, [CreateOrderInDatabase])
+
+  const createOrder = useMemo(
+    () => ({
+      item: uniqueCreateOrderInDatabase,
+    }),
+    [uniqueCreateOrderInDatabase],
+  )
 
   const loadFilteredProducts = useCallback(async () => {
     try {
@@ -391,31 +390,33 @@ export default function ProductListingPage() {
     }
   }
 
-  const finalProducts = Object.keys(user).length
-    ? products.map((cloth) => {
-        const isClothPresentInCart =
-          user && user.addToCartItems.filter((item) => item.id === cloth.id)
-        if (isClothPresentInCart && isClothPresentInCart.length) {
-          cloth.addToCart = true
-          cloth.quantity = isClothPresentInCart[0].quantity
-            ? isClothPresentInCart[0].quantity
-            : 1
-          cloth.size = isClothPresentInCart[0].size
-            ? isClothPresentInCart[0].size
-            : ""
-        } else {
-          delete cloth.addToCart
-        }
-        const isClothPresentInWishlist =
-          user && user.addToWishlistItems.filter((item) => item.id === cloth.id)
-        if (isClothPresentInWishlist && isClothPresentInWishlist.length) {
-          cloth.addToWishList = true
-        } else {
-          delete cloth.addToWishList
-        }
-        return cloth
-      })
-    : []
+  const finalProducts = useMemo(() => {
+    if (!user || !Object.keys(user).length) return []
+
+    return products.map((cloth) => {
+      const isClothPresentInCart =
+        user && user.addToCartItems.filter((item) => item.id === cloth.id)
+      if (isClothPresentInCart && isClothPresentInCart.length) {
+        cloth.addToCart = true
+        cloth.quantity = isClothPresentInCart[0].quantity
+          ? isClothPresentInCart[0].quantity
+          : 1
+        cloth.size = isClothPresentInCart[0].size
+          ? isClothPresentInCart[0].size
+          : ""
+      } else {
+        delete cloth.addToCart
+      }
+      const isClothPresentInWishlist =
+        user && user.addToWishlistItems.filter((item) => item.id === cloth.id)
+      if (isClothPresentInWishlist && isClothPresentInWishlist.length) {
+        cloth.addToWishList = true
+      } else {
+        delete cloth.addToWishList
+      }
+      return cloth
+    })
+  }, [products, user])
 
   if (isError) {
     return <Error />
