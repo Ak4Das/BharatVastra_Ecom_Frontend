@@ -1,5 +1,5 @@
 import styles from "../style_modules/pages_modules/PaymentMethod.module.css"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { toast } from "react-toastify"
 import Header from "../components/Header"
@@ -34,42 +34,46 @@ export default function PaymentMethods() {
 
   const [updated, setUpdated] = useState(false)
   const [orders, setOrders] = useState([])
+  // Here i use CreateOrderInDatabase and Products two states for same data to prevent infinite re-render
   const [CreateOrderInDatabase, setCreateOrderInDatabase] = useState(null)
   const [Products, setProducts] = useState([])
   const [isOrderPlaced, setIsOrderPlaced] = useState(false)
   const [coupon, setCoupon] = useState("")
   const [editItems, setEditItems] = useState(false)
-
   const [disableQuantityBtnId, setDisableQuantityBtnId] = useState(null)
 
   const { user, setUser } = GetUser()
   const userId = user._id
 
-  const address = user?.address?.length
-    ? user.address.find((addr) => addr.selected)
-    : null
+  const address = useMemo(() => {
+    return user?.address?.length
+      ? user.address.find((addr) => addr.selected)
+      : null
+  }, [user?.address])
 
-  const uniqueCreateOrderInDatabase =
-    CreateOrderInDatabase &&
-    CreateOrderInDatabase.length &&
-    CreateOrderInDatabase[0].products.reduce((acc, item) => {
-      if (!acc.length) {
+  const uniqueCreateOrderInDatabase = useMemo(() => {
+    if (!CreateOrderInDatabase?.length) return []
+    return CreateOrderInDatabase[0].products.reduce((acc, item) => {
+      if (!acc.some((obj) => obj.id === item.id)) {
         acc.push(item)
-      } else {
-        const searchInAcc = acc.find((obj) => obj.id === item.id) ? true : false
-        if (!searchInAcc) {
-          acc.push(item)
-        }
       }
       return acc
     }, [])
-  const createOrderInDatabase = { item: uniqueCreateOrderInDatabase }
+  }, [CreateOrderInDatabase])
 
+  const createOrderInDatabase = useMemo(
+    () => ({
+      item: uniqueCreateOrderInDatabase,
+    }),
+    [uniqueCreateOrderInDatabase],
+  )
+
+  // Synchronize Products state safely without triggering infinite re-render
   useEffect(() => {
     if (uniqueCreateOrderInDatabase?.length && !Products.length) {
       setProducts(uniqueCreateOrderInDatabase)
     }
-  }, [CreateOrderInDatabase])
+  }, [uniqueCreateOrderInDatabase, Products.length])
 
   async function updateAllItems(data) {
     const createOrder = { products: data, userId }
@@ -97,56 +101,65 @@ export default function PaymentMethods() {
     setUpdated(true)
   }
 
-  const totalOrder = Products.reduce((acc, curr) => {
-    const discountVal = Number(curr.offer.replace("%", ""))
-      ? Number(curr.offer.replace("%", ""))
-      : Number(curr.discount.replace("%", ""))
-    const itemPrice = curr.price - (curr.price / 100) * discountVal
-    return acc + itemPrice * (curr.quantity || 1)
-  }, 0)
+  const totalOrder = useMemo(() => {
+    return Products.reduce((acc, curr) => {
+      const discountVal = Number(curr.offer?.replace("%", ""))
+        ? Number(curr.offer.replace("%", ""))
+        : Number(curr.discount?.replace("%", "")) || 0
+      const itemPrice = curr.price - (curr.price / 100) * discountVal
+      return acc + itemPrice * (curr.quantity || 1)
+    }, 0)
+  }, [Products])
 
-  const DeliveryCharge = Products.length
-    ? Math.round(
-        Products.reduce((acc, curr) => acc + curr.deliveryCharge, 0) /
-          Products.length,
-      )
-    : 0
+  const DeliveryCharge = useMemo(() => {
+    return Products.length
+      ? Math.round(
+          Products.reduce((acc, curr) => acc + curr.deliveryCharge, 0) /
+            Products.length,
+        )
+      : 0
+  }, [Products])
 
-  const deliveryCharge = Products.length
-    ? Math.round(
-        Products.reduce(
-          (acc, curr) => acc + (curr.freeDelivery ? 0 : curr.deliveryCharge),
-          0,
-        ) / Products.length,
-      )
-    : 0
+  const deliveryCharge = useMemo(() => {
+    return Products.length
+      ? Math.round(
+          Products.reduce(
+            (acc, curr) => acc + (curr.freeDelivery ? 0 : curr.deliveryCharge),
+            0,
+          ) / Products.length,
+        )
+      : 0
+  }, [Products])
 
-  const freeDelivery = Products.length
-    ? Math.round(
-        Products.reduce(
-          (acc, curr) => acc + (curr.freeDelivery ? curr.deliveryCharge : 0),
-          0,
-        ) / Products.length,
-      )
-    : 0
+  const freeDelivery = useMemo(() => {
+    return Products.length
+      ? Math.round(
+          Products.reduce(
+            (acc, curr) => acc + (curr.freeDelivery ? curr.deliveryCharge : 0),
+            0,
+          ) / Products.length,
+        )
+      : 0
+  }, [Products])
 
   const totalPrice = totalOrder + deliveryCharge + (isCashOnDelivery ? 10 : 0)
 
   async function deleteItem(product) {
     try {
-      const Product = Products.filter((item) => item.id !== product.id)
-      orders[orders.length - 1].item = Product
-      setProducts(Product)
+      const updatedProducts = Products.filter((item) => item.id !== product.id)
 
-      const createOrder = createOrderInDatabase
+      if (orders.length > 0) {
+        const updatedOrders = [...orders]
+        updatedOrders[updatedOrders.length - 1] = {
+          ...updatedOrders[updatedOrders.length - 1],
+          item: updatedProducts,
+        }
+        setOrders(updatedOrders)
+      }
+      setProducts(updatedProducts)
 
-      const createOrderItem =
-        createOrder &&
-        createOrder.item.length &&
-        createOrder.item.filter((item) => item.id === product.id)
-
-      const updatedCreateOrder = createOrder.item.filter(
-        (item) => item.id !== createOrderItem[0].id,
+      const updatedCreateOrder = createOrderInDatabase.item.filter(
+        (item) => item.id !== product.id,
       )
 
       await updateAllItems(updatedCreateOrder)
@@ -161,61 +174,44 @@ export default function PaymentMethods() {
 
   async function changeQuantity(e, product) {
     try {
-      let inputElementValue = Number(e.target.value)
-      // Update clothsData in memory
-      const item = await fetchClothById({
-        clothId: product.id,
-        setIsError,
-        navigate,
-      })
-      if (inputElementValue > 0) {
-        item.quantity = inputElementValue
-      } else {
-        item.quantity = 1
-      }
+      const inputElementValue = Math.max(1, Number(e.target.value) || 1)
 
-      // Update user in Database
       const isItemAddedToCart = user.addToCartItems.filter(
         (item) => item.id === product.id,
       )
       if (isItemAddedToCart.length) {
-        if (inputElementValue > 0) {
-          isItemAddedToCart[0].quantity = inputElementValue
-        } else {
-          isItemAddedToCart[0].quantity = 1
-        }
-
+        isItemAddedToCart[0].quantity = inputElementValue
         await updateCartItems(user._id, user.addToCartItems)
       }
 
-      // Update createOrder in Database
-      const createOrder = createOrderInDatabase
-
-      const createOrderItem =
-        createOrder &&
-        createOrder.item.length &&
-        createOrder.item.filter((item) => item.id === product.id)
-
-      if (createOrderItem && createOrderItem.length) {
-        if (inputElementValue > 0) {
-          createOrderItem[0].quantity = inputElementValue
-        } else {
-          createOrderItem[0].quantity = 1
+      const updatedCreateOrder = createOrderInDatabase.item.map((item) => {
+        if (item.id === product.id) {
+          return { ...item, quantity: inputElementValue }
         }
+        return item
+      })
+
+      await updateAllItems(updatedCreateOrder)
+
+      const updatedProducts = Products.map((item) => {
+        if (item.id === product.id) {
+          return { ...item, quantity: inputElementValue }
+        }
+        return item
+      })
+      setProducts(updatedProducts)
+
+      if (orders.length > 0) {
+        const updatedOrders = [...orders]
+        updatedOrders[updatedOrders.length - 1] = {
+          ...updatedOrders[updatedOrders.length - 1],
+          item: updatedProducts,
+        }
+        setOrders(updatedOrders)
       }
-
-      await updateAllItems(createOrder.item)
-
-      // Update items of current order
-      const Product = Products.find((item) => item.id === product.id)
-      Product.quantity = inputElementValue
-      orders[orders.length - 1].item = Products
-      // useState(true)
       setEditItems(true)
     } catch (error) {
-      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
-        console.error(error)
-      }
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") console.error(error)
       setIsError(error.message)
     }
   }
@@ -223,26 +219,18 @@ export default function PaymentMethods() {
   async function increaseCount(e, product) {
     try {
       setDisableQuantityBtnId(product.id)
+
+      const currentQty = product.quantity || 1
+      const nextQty = currentQty + 1
+
       // Update the input element value
-      let inputElementValue = Number(e.target.previousElementSibling.value)
-      e.target.previousElementSibling.value = ++inputElementValue
+      e.target.previousElementSibling.value = nextQty
 
-      // Update clothsData in memory
-      const item = await fetchClothById({
-        clothId: product.id,
-        setIsError,
-        navigate,
-      })
-      item.quantity = Number(e.target.previousElementSibling.value)
-
-      // Update user in Database
       const isItemAddedToCart = user.addToCartItems.filter(
         (item) => item.id === product.id,
       )
       if (isItemAddedToCart.length) {
-        isItemAddedToCart[0].quantity = Number(
-          e.target.previousElementSibling.value,
-        )
+        isItemAddedToCart[0].quantity = nextQty
         await updateCartItemsInUser({
           items: user.addToCartItems,
           setIsError,
@@ -250,37 +238,41 @@ export default function PaymentMethods() {
         })
       }
 
-      // Update createOrder in Database
-      const createOrder = createOrderInDatabase
+      const updatedCreateOrder = createOrderInDatabase.item.map((item) => {
+        if (item.id === product.id) {
+          return { ...item, quantity: nextQty }
+        }
+        return item
+      })
 
-      const createOrderItem =
-        createOrder &&
-        createOrder.item.length &&
-        createOrder.item.filter((item) => item.id === product.id)
-
-      if (createOrderItem && createOrderItem.length) {
-        createOrderItem[0].quantity = Number(
-          e.target.previousElementSibling.value,
-        )
-      }
-
-      const CreateOrder = {
-        products: createOrder.item,
+      const CreateOrderPayload = {
+        products: updatedCreateOrder,
         userId,
       }
       await fetchCreateOrderByUserIdAndUpdate({
         userId,
-        createOrder: CreateOrder,
+        createOrder: CreateOrderPayload,
         setIsError,
         navigate,
       })
 
-      // Update items of current order
-      const Product = Products.find((item) => item.id === product.id)
-      Product.quantity = Number(e.target.previousElementSibling.value)
-      orders[orders.length - 1].item = Products
+      const updatedProducts = Products.map((item) => {
+        if (item.id === product.id) {
+          return { ...item, quantity: nextQty }
+        }
+        return item
+      })
+      setProducts(updatedProducts)
 
-      // To update the variables present in this page
+      if (orders.length > 0) {
+        const updatedOrders = [...orders]
+        updatedOrders[updatedOrders.length - 1] = {
+          ...updatedOrders[updatedOrders.length - 1],
+          item: updatedProducts,
+        }
+        setOrders(updatedOrders)
+      }
+
       setUpdated(true)
       setEditItems(true)
     } catch (error) {
