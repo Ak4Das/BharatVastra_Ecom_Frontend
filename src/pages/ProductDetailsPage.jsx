@@ -84,6 +84,7 @@ export default function ProductDetailsPage() {
   const userExists = user && Object.keys(user).length > 0
 
   const camelCaseToTitle = (camelCase) => {
+    if (!camelCase) return
     const wordsArray = []
     const arrayOfLetters = camelCase.split("")
     arrayOfLetters[0] = arrayOfLetters[0].toUpperCase()
@@ -109,7 +110,7 @@ export default function ProductDetailsPage() {
     return `${today.getDate()} ${MONTHS[today.getMonth()]} ${today.getFullYear()}`
   }
 
-  // For the first time when data was fetch
+  // Sync products with user data for the first time when data was fetched
   const getFinalClothsData = (clothsData) => {
     if (!userExists) return clothsData
     return clothsData.map((cloth) => {
@@ -135,7 +136,7 @@ export default function ProductDetailsPage() {
     })
   }
 
-  // For user interactions
+  // Sync products with user data after user interactions
   const product = useMemo(() => {
     if (!rawProduct) return null
     const computedProduct = { ...rawProduct }
@@ -149,7 +150,6 @@ export default function ProductDetailsPage() {
         computedProduct.quantity = cartItem.quantity || 1
         computedProduct.size = cartItem.size || ""
       } else {
-        delete computedProduct.addToCart
         computedProduct.quantity = quantity
         computedProduct.size = size
       }
@@ -159,8 +159,6 @@ export default function ProductDetailsPage() {
       )
       if (wishItem) {
         computedProduct.addToWishList = true
-      } else {
-        delete computedProduct.addToWishList
       }
     }
     return computedProduct
@@ -170,6 +168,7 @@ export default function ProductDetailsPage() {
     setLoading(true)
   }, [])
 
+  // Fetch updated createOrder data after user interactions
   useEffect(() => {
     async function fetchCreateOrderData() {
       try {
@@ -191,6 +190,7 @@ export default function ProductDetailsPage() {
     fetchCreateOrderData()
   }, [userId, isUpdated])
 
+  // Fetch product after product will change
   useEffect(() => {
     async function fetchProductData() {
       try {
@@ -204,8 +204,22 @@ export default function ProductDetailsPage() {
         } else {
           setRawProduct(result)
         }
-        if (result && result.similarProducts) {
-          const similarProductIds = result.similarProducts.map((p) => p.id)
+      } catch (error) {
+        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+          console.error(error)
+        }
+        setIsError(error.message)
+      }
+    }
+    fetchProductData()
+  }, [id])
+
+  // Fetch similarProducts after product will change and after update user
+  useEffect(() => {
+    async function fetchSimilarProductsData() {
+      try {
+        if (rawProduct) {
+          const similarProductIds = rawProduct.similarProducts.map((p) => p.id)
           const allSimilarProducts = await Promise.all(
             similarProductIds.map((sid) =>
               fetchClothById({
@@ -229,8 +243,9 @@ export default function ProductDetailsPage() {
         setIsError(error.message)
       }
     }
-    fetchProductData()
-  }, [id, user])
+
+    fetchSimilarProductsData()
+  }, [rawProduct, user])
 
   useEffect(() => {
     if (cbBought2Ref.current) {
@@ -241,6 +256,38 @@ export default function ProductDetailsPage() {
     }
   }, [id])
 
+  async function updateCreateOrder(userId, data) {
+    try {
+      const response = await fetchCreateOrderByUserId({
+        userId,
+        setIsError,
+        navigate,
+      })
+      if (response.length) {
+        const result = await fetchCreateOrderByUserIdAndUpdate({
+          userId,
+          createOrder: data,
+          setIsError,
+          navigate,
+        })
+
+        setCreateOrderData([result])
+      } else {
+        const result = await saveCreateOrder({
+          createOrder: data,
+          setIsError,
+          navigate,
+        })
+
+        setCreateOrderData([result])
+      }
+      setUpdated(true)
+    } catch (error) {
+      throw error
+    }
+  }
+
+  // Update CreateOrder data after product will change
   useEffect(() => {
     async function updateCreateOrderData() {
       if (!product || !userId) return
@@ -267,25 +314,8 @@ export default function ProductDetailsPage() {
         const USER = { ...user }
         const PRODUCT = { ...product }
 
-        const cartItem = USER.addToCartItems?.find(
-          (item) => item.id === PRODUCT.id,
-        )
-
-        if (cartItem) {
-          if (quantity > 1) {
-            cartItem.quantity = quantity
-            await updateCartItemsInUser({
-              items: USER.addToCartItems,
-              setIsError,
-              navigate,
-            })
-            setUser(USER)
-            PRODUCT.quantity = quantity
-          }
-        } else {
-          if (quantity > 1) {
-            PRODUCT.quantity = quantity
-          }
+        if (quantity > 1) {
+          PRODUCT.quantity = quantity
         }
 
         let currentOrders = createOrderData ? [...createOrderData] : []
@@ -398,37 +428,6 @@ export default function ProductDetailsPage() {
   useEffect(() => {
     setFreeDelivery(false)
   }, [id])
-
-  async function updateCreateOrder(targetId, data) {
-    try {
-      const response = await fetchCreateOrderByUserId({
-        userId,
-        setIsError,
-        navigate,
-      })
-      if (response.length) {
-        const result = await fetchCreateOrderByUserIdAndUpdate({
-          userId: targetId,
-          createOrder: data,
-          setIsError,
-          navigate,
-        })
-
-        setCreateOrderData([result])
-      } else {
-        const result = await saveCreateOrder({
-          createOrder: data,
-          setIsError,
-          navigate,
-        })
-
-        setCreateOrderData([result])
-      }
-      setUpdated(true)
-    } catch (error) {
-      throw error
-    }
-  }
 
   async function increaseCount() {
     if (!qtyInputRef.current || !userExists) return
