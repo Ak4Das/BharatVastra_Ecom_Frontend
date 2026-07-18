@@ -157,11 +157,7 @@ export default function CartPage() {
   }, [data])
 
   useEffect(() => {
-    if (
-      isRemoveFromCart ||
-      !createOrderInDatabase ||
-      !formattedCreateOrder.item
-    ) {
+    if (isRemoveFromCart || !formattedCreateOrder.item) {
       return
     }
 
@@ -189,13 +185,7 @@ export default function CartPage() {
       setPermission("allow")
       setData(productsInCart)
     }
-  }, [
-    isRemoveFromCart,
-    createOrderInDatabase,
-    formattedCreateOrder,
-    productsInCart,
-    permission,
-  ])
+  }, [isRemoveFromCart, formattedCreateOrder, productsInCart, permission])
 
   useEffect(() => {
     if (isUpdated) {
