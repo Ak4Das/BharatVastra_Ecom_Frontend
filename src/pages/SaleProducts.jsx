@@ -43,16 +43,14 @@ export default function SaleProducts() {
 
   useEffect(() => {
     if (!userId) return
-    async function fetchUserMetadata() {
+    async function fetchCreateOrder() {
       try {
-        await Promise.all([
-          fetchCreateOrderByUserId({
-            userId,
-            setFunction: setCreateOrderInDatabase,
-            setIsError,
-            navigate,
-          }),
-        ])
+        await fetchCreateOrderByUserId({
+          userId,
+          setFunction: setCreateOrderInDatabase,
+          setIsError,
+          navigate,
+        })
         if (isUpdate) {
           setUpdate(false)
         }
@@ -62,7 +60,7 @@ export default function SaleProducts() {
         }
       }
     }
-    fetchUserMetadata()
+    fetchCreateOrder()
   }, [userId, isUpdate])
 
   useEffect(() => {
@@ -93,50 +91,52 @@ export default function SaleProducts() {
     loadProducts()
   }, [commonCategory, page, gender, search])
 
-  const uniqueCreateOrderInDatabase =
-    createOrderInDatabase && createOrderInDatabase.length
-      ? createOrderInDatabase[0].products.reduce((acc, item) => {
-          if (!acc.length) {
-            acc.push(item)
-          } else {
-            const searchInAcc = acc.find((obj) => obj.id === item.id)
-              ? true
-              : false
-            if (!searchInAcc) {
-              acc.push(item)
-            }
-          }
-          return acc
-        }, [])
-      : []
-
-  const createOrder = { item: uniqueCreateOrderInDatabase }
-
-  const finalClothsData = Object.keys(user).length
-    ? clothsData.map((cloth) => {
-        const isClothPresentInCart =
-          user && user.addToCartItems.filter((item) => item.id === cloth.id)
-        if (isClothPresentInCart && isClothPresentInCart.length) {
-          cloth.addToCart = true
-          cloth.quantity = isClothPresentInCart[0].quantity
-            ? isClothPresentInCart[0].quantity
-            : 1
-          cloth.size = isClothPresentInCart[0].size
-            ? isClothPresentInCart[0].size
-            : ""
-        } else {
-          delete cloth.addToCart
+  const uniqueCreateOrderInDatabase = useMemo(() => {
+    if (!createOrderInDatabase || !createOrderInDatabase.length) return []
+    return createOrderInDatabase[0].products.reduce((acc, item) => {
+      if (!acc.length) {
+        acc.push(item)
+      } else {
+        const searchInAcc = acc.find((obj) => obj.id === item.id) ? true : false
+        if (!searchInAcc) {
+          acc.push(item)
         }
-        const isClothPresentInWishlist =
-          user && user.addToWishlistItems.filter((item) => item.id === cloth.id)
-        if (isClothPresentInWishlist && isClothPresentInWishlist.length) {
-          cloth.addToWishList = true
-        } else {
-          delete cloth.addToWishList
-        }
-        return cloth
-      })
-    : []
+      }
+      return acc
+    }, [])
+  }, [createOrderInDatabase])
+
+  const createOrder = useMemo(
+    () => ({ item: uniqueCreateOrderInDatabase }),
+    [uniqueCreateOrderInDatabase],
+  )
+
+  const finalClothsData = useMemo(() => {
+    if (!user || !Object.keys(user).length) return []
+    return clothsData.map((cloth) => {
+      const isClothPresentInCart =
+        user && user.addToCartItems.filter((item) => item.id === cloth.id)
+      if (isClothPresentInCart && isClothPresentInCart.length) {
+        cloth.addToCart = true
+        cloth.quantity = isClothPresentInCart[0].quantity
+          ? isClothPresentInCart[0].quantity
+          : 1
+        cloth.size = isClothPresentInCart[0].size
+          ? isClothPresentInCart[0].size
+          : ""
+      } else {
+        delete cloth.addToCart
+      }
+      const isClothPresentInWishlist =
+        user && user.addToWishlistItems.filter((item) => item.id === cloth.id)
+      if (isClothPresentInWishlist && isClothPresentInWishlist.length) {
+        cloth.addToWishList = true
+      } else {
+        delete cloth.addToWishList
+      }
+      return cloth
+    })
+  }, [clothsData, user])
 
   // Refactored Add to Cart Logic using Optimistic UI state updates
   const addToCart = async (e) => {
