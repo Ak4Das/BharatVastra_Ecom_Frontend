@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react"
+import React, { useEffect, useState, useCallback, useMemo } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { toast } from "react-toastify"
 
@@ -106,24 +106,25 @@ export default function NewArrival() {
     loadProducts(currentPage, search)
   }, [currentPage, search, loadProducts])
 
-  const uniqueCreateOrderInDatabase =
-    CreateOrderInDatabase && CreateOrderInDatabase.length
-      ? CreateOrderInDatabase[0].products.reduce((acc, item) => {
-          if (!acc.length) {
-            acc.push(item)
-          } else {
-            const searchInAcc = acc.find((obj) => obj.id === item.id)
-              ? true
-              : false
-            if (!searchInAcc) {
-              acc.push(item)
-            }
-          }
-          return acc
-        }, [])
-      : []
+  const uniqueCreateOrderInDatabase = useMemo(() => {
+    if (!CreateOrderInDatabase || !CreateOrderInDatabase.length) return []
+    return CreateOrderInDatabase[0].products.reduce((acc, item) => {
+      if (!acc.length) {
+        acc.push(item)
+      } else {
+        const searchInAcc = acc.find((obj) => obj.id === item.id) ? true : false
+        if (!searchInAcc) {
+          acc.push(item)
+        }
+      }
+      return acc
+    }, [])
+  }, [CreateOrderInDatabase])
 
-  const createOrder = { item: uniqueCreateOrderInDatabase }
+  const createOrder = useMemo(
+    () => ({ item: uniqueCreateOrderInDatabase }),
+    [uniqueCreateOrderInDatabase],
+  )
 
   const handleAddToCart = async (e) => {
     e.preventDefault()
@@ -347,31 +348,32 @@ export default function NewArrival() {
     }
   }
 
-  const finalProducts = Object.keys(user).length
-    ? products.map((cloth) => {
-        const isClothPresentInCart =
-          user && user.addToCartItems.filter((item) => item.id === cloth.id)
-        if (isClothPresentInCart && isClothPresentInCart.length) {
-          cloth.addToCart = true
-          cloth.quantity = isClothPresentInCart[0].quantity
-            ? isClothPresentInCart[0].quantity
-            : 1
-          cloth.size = isClothPresentInCart[0].size
-            ? isClothPresentInCart[0].size
-            : ""
-        } else {
-          delete cloth.addToCart
-        }
-        const isClothPresentInWishlist =
-          user && user.addToWishlistItems.filter((item) => item.id === cloth.id)
-        if (isClothPresentInWishlist && isClothPresentInWishlist.length) {
-          cloth.addToWishList = true
-        } else {
-          delete cloth.addToWishList
-        }
-        return cloth
-      })
-    : []
+  const finalProducts = useMemo(() => {
+    if (!user || !Object.keys(user).length) return []
+    return products.map((cloth) => {
+      const isClothPresentInCart =
+        user && user.addToCartItems.filter((item) => item.id === cloth.id)
+      if (isClothPresentInCart && isClothPresentInCart.length) {
+        cloth.addToCart = true
+        cloth.quantity = isClothPresentInCart[0].quantity
+          ? isClothPresentInCart[0].quantity
+          : 1
+        cloth.size = isClothPresentInCart[0].size
+          ? isClothPresentInCart[0].size
+          : ""
+      } else {
+        delete cloth.addToCart
+      }
+      const isClothPresentInWishlist =
+        user && user.addToWishlistItems.filter((item) => item.id === cloth.id)
+      if (isClothPresentInWishlist && isClothPresentInWishlist.length) {
+        cloth.addToWishList = true
+      } else {
+        delete cloth.addToWishList
+      }
+      return cloth
+    })
+  }, [products, user])
 
   if (isError) {
     return <Error />
