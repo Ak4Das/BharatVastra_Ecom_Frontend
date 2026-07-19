@@ -99,8 +99,10 @@ export default function ProductListingPage() {
         setTotalPages(result.pagination?.totalPages || 1)
       }
     } catch (error) {
-      console.dir(error)
-      setIsError(error.message || "Failed to sync products from server")
+      if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+        console.error(error)
+      }
+      setIsError(error.message)
     } finally {
       setLoading(false)
     }
@@ -121,23 +123,35 @@ export default function ProductListingPage() {
   }, [loadFilteredProducts])
 
   useEffect(() => {
-    async function syncUserState() {
+    async function fetchCategories() {
+      try {
+        await fetchCategory({
+          category: mainCategory,
+          setFunction: setCategory,
+          setIsError,
+          navigate,
+        })
+      } catch (error) {
+        if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
+          console.error(error)
+        }
+        setIsError(error.message)
+      }
+    }
+
+    fetchCategories()
+  }, [])
+
+  useEffect(() => {
+    async function fetchCreateOrder() {
       if (!userId) return
       try {
-        await Promise.all([
-          fetchCategory({
-            category: mainCategory,
-            setFunction: setCategory,
-            setIsError,
-            navigate,
-          }),
-          fetchCreateOrderByUserId({
-            userId,
-            setFunction: setCreateOrderInDatabase,
-            setIsError,
-            navigate,
-          }),
-        ])
+        await fetchCreateOrderByUserId({
+          userId,
+          setFunction: setCreateOrderInDatabase,
+          setIsError,
+          navigate,
+        })
         if (isUpdate) {
           setUpdate(false)
         }
@@ -145,9 +159,10 @@ export default function ProductListingPage() {
         if (import.meta.env.VITE_MODE === "DEVELOPMENT") {
           console.error(error)
         }
+        setIsError(error.message)
       }
     }
-    syncUserState()
+    fetchCreateOrder()
   }, [userId, isUpdate])
 
   useEffect(() => {
