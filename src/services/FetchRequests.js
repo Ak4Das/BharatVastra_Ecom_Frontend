@@ -11,7 +11,7 @@ export async function fetchCloths(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const {
@@ -73,7 +73,7 @@ export async function fetchClothById(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/cloth/${clothId}`, {
@@ -119,7 +119,7 @@ export async function fetchNewArrivalCloths(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const { currentPage, itemsPerPage, search } = query
@@ -170,7 +170,7 @@ export async function fetchDistinctCommonCategories(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/cloth/categories/distinct`, {
@@ -213,7 +213,7 @@ export async function fetchClothsByMainCategory(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/cloth/mainCategory/${mainCategory}`, {
@@ -259,7 +259,7 @@ export async function fetchClothsByCommonCategory(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(
@@ -308,7 +308,7 @@ export async function fetchOfferOnACategory(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const { page, gender, search } = query
@@ -359,7 +359,7 @@ export async function fetchAllCategories(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/category/`, {
@@ -402,7 +402,7 @@ export async function fetchCategory(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/category/${category}`, {
@@ -448,7 +448,7 @@ export async function updateClothById(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/cloth/update/${id}`, {
@@ -497,7 +497,7 @@ export async function fetchCreateOrderByUserIdAndUpdate(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/createOrder/updateItems/${userId}`, {
@@ -546,7 +546,7 @@ export async function fetchCreateOrder(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/createOrder/`, {
@@ -592,7 +592,7 @@ export async function fetchCreateOrderByUserId(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/createOrder/${userId}`, {
@@ -638,7 +638,7 @@ export async function fetchCreateOrderByUserIdAndDelete(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/createOrder/delete/userId/${userId}`, {
@@ -685,7 +685,7 @@ export async function fetchAllUsers(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/user/`, {
@@ -731,7 +731,7 @@ export async function fetchMe(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/user/me`, {
@@ -777,7 +777,7 @@ export async function updateUser(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/user/updateUser`, {
@@ -827,7 +827,7 @@ export async function updateAddressOfUser(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/user/updateUserAddress`, {
@@ -877,7 +877,7 @@ export async function updateWishlistItemsInUser(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/user/updateWishlistItems`, {
@@ -926,7 +926,7 @@ export async function updateCartItemsInUser(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/user/updateCartItems`, {
@@ -975,7 +975,7 @@ export async function signup(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/auth/signup`, {
@@ -1023,7 +1023,7 @@ export async function login(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/auth/login`, {
@@ -1071,7 +1071,7 @@ export async function saveCreateOrder(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/createOrder/saveItem`, {
@@ -1120,7 +1120,7 @@ export async function saveNewOrder(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/order/saveOrder`, {
@@ -1169,7 +1169,7 @@ export async function fetchAllOrders(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/order/`, {
@@ -1215,7 +1215,7 @@ export async function fetchAllOrdersByUserId(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/order/user/${userId}`, {
@@ -1261,7 +1261,7 @@ export async function fetchOrderByOrderId(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/order/${orderId}`, {
@@ -1307,7 +1307,7 @@ export async function deleteOrderById(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/order/delete/${id}`, {
@@ -1353,7 +1353,7 @@ export async function updateOrder(obj) {
 
   const timerId = setTimeout(() => {
     controller.abort()
-  }, 10000)
+  }, 20000)
 
   try {
     const response = await fetch(`${url}/order/update/${id}`, {
